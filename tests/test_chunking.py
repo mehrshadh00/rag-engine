@@ -1,5 +1,5 @@
 import pytest
-from rag_engine.chunking import chunk_text
+from rag_engine.chunking import chunk_documents, chunk_text
 
 
 def test_empty_text_returns_no_chunks():
@@ -21,3 +21,15 @@ def test_long_text_chunks_overlap():
 def test_invalid_overlap_raises():
     with pytest.raises(ValueError):
         chunk_text("hello", chunk_size=10, overlap=10)
+
+
+def test_chunk_ids_are_stable_and_source_aware():
+    documents = [
+        {"text": "alpha beta gamma", "metadata": {"source": "a.txt"}},
+        {"text": "alpha beta gamma", "metadata": {"source": "b.txt"}},
+    ]
+    first = chunk_documents(documents, chunk_size=30, overlap=5)
+    second = chunk_documents(list(reversed(documents)), chunk_size=30, overlap=5)
+
+    assert first[0]["id"] != first[1]["id"]
+    assert {item["id"] for item in first} == {item["id"] for item in second}
