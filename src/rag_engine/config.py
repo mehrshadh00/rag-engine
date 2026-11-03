@@ -2,9 +2,13 @@
 
 import os
 from dataclasses import dataclass
-from dotenv import load_dotenv
 
-load_dotenv()
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    # Environment variables can still be supplied by the process or deployment.
+    pass
 
 
 @dataclass(frozen=True)
