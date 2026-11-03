@@ -87,7 +87,19 @@ Run unit tests:
 pytest
 ```
 
-A retrieval evaluation module provides Precision@K, Recall@K, Reciprocal Rank (MRR at the dataset level), and Hit Rate@K. `evaluate_retrieval()` runs a labeled query dataset against any compatible retriever and returns per-query results plus aggregate metrics. Tests use lightweight fakes and do not require API credentials or downloading the embedding model.
+A retrieval evaluation module provides Precision@K, Recall@K, Reciprocal Rank, and Hit Rate@K. `evaluate_retrieval()` runs a labeled query dataset against any compatible retriever and returns per-query results plus aggregate metrics. Tests use lightweight fakes and do not require API credentials or downloading the embedding model.
+
+### Reproducible retrieval benchmark
+
+The repository includes a small, manually labeled benchmark with three technical documents and 20 natural-language queries. Labels are document-level: a source is relevant when it contains evidence needed to answer the query. The runner collapses ranked chunks into unique source documents, using each document's highest-ranked chunk.
+
+```bash
+python scripts/run_benchmark.py
+# Optional: evaluate a different number of unique source documents
+python scripts/run_benchmark.py --k 2
+```
+
+The runner indexes the benchmark corpus in a separate local ChromaDB collection under `.benchmark_chroma/`, uses the configured local embedding model, and prints JSON containing aggregate and per-query metrics. It does not call an LLM API; the embedding model may be downloaded on first run. The default `k=3` reflects the three-document corpus. This is a transparent regression baseline, not a general-purpose leaderboard. See `benchmarks/datasets/rag_fundamentals_v1.json` for the queries and relevance labels.
 
 ## Current scope and limitations
 
@@ -111,6 +123,11 @@ src/rag_engine/
   generation.py   # Grounded answer generation
   pipeline.py     # End-to-end orchestration
   evaluation.py   # Retrieval metrics
+benchmarks/
+  corpus/         # Three benchmark source documents
+  datasets/       # Versioned labeled queries
+scripts/
+  run_benchmark.py # Reproducible retrieval benchmark runner
 tests/
 .github/workflows/tests.yml
 ```
