@@ -4,8 +4,9 @@ from rag_engine.vector_store import ChromaVectorStore
 
 
 class FakeCollection:
-    def __init__(self, count=0):
-        self.item_count = count
+    def __init__(self, count=0, records=None):
+        self.records = records or []
+        self.item_count = len(self.records) if records is not None else count
         self.deleted = []
         self.query_called = False
 
@@ -18,6 +19,15 @@ class FakeCollection:
 
     def delete(self, **kwargs):
         self.deleted.append(kwargs)
+
+    def get(self, limit, include):
+        assert limit == len(self.records)
+        assert include == ["documents", "metadatas"]
+        return {
+            "ids": [item["id"] for item in self.records],
+            "documents": [item["text"] for item in self.records],
+            "metadatas": [item["metadata"] for item in self.records],
+        }
 
 
 def make_store(count=0):
@@ -51,3 +61,20 @@ def test_add_rejects_mismatched_embedding_count():
     chunks = [{"id": "one", "text": "hello", "metadata": {"source": "a.txt"}}]
     with pytest.raises(ValueError, match="exactly one embedding"):
         store.add(chunks, [])
+
+
+def test_get_all_returns_persisted_chunks():
+    store = ChromaVectorStore.__new__(ChromaVectorStore)
+    store.collection = FakeCollection(records=[
+        {"id": "c1", "text": "First", "metadata": {"source": "a.md"}},
+        {"id": "c2", "text": "Second", "metadata": {"source": "b.md"}},
+    ])
+    assert store.get_all() == [
+        {"id": "c1", "text": "First", "metadata": {"source": "a.md"}},
+        {"id": "c2", "text": "Second", "metadata": {"source": "b.md"}},
+    ]
+
+
+def test_get_all_handles_empty_collection():
+    store = make_store()
+    assert store.get_all() == []
