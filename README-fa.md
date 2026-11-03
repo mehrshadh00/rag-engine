@@ -8,10 +8,11 @@
 - قطعه‌بندی متن با هم‌پوشانی (Chunking)
 - ساخت بردارهای معنایی با Sentence Transformers
 - ذخیره‌سازی پایدار در ChromaDB
-- بازیابی معنایی و ساخت Context
-- تولید پاسخ با ارجاع به منبع و دستور خودداری از حدس‌زدن
-- API مبتنی بر FastAPI
-- معیارهای ارزیابی بازیابی شامل Precision@K، Recall@K، Reciprocal Rank و Hit Rate@K، به‌همراه تست‌های خودکار
+- بازیابی ترکیبی Dense و Sparse با BM25
+- ادغام رتبه‌ها با Reciprocal Rank Fusion (RRF)
+- تولید پاسخ مستند و API مبتنی بر FastAPI
+- ارزیابی با Precision@K، Recall@K، Reciprocal Rank و Hit Rate@K
+- بنچمارک مقایسه‌ای Dense و Hybrid و تست‌های خودکار
 
 ## راه‌اندازی
 
@@ -21,80 +22,82 @@ Python نسخه 3.11 یا 3.12 پیشنهاد می‌شود.
 git clone https://github.com/mehrshadh00/rag-engine.git
 cd rag-engine
 python -m venv .venv
-# macOS/Linux
-source .venv/bin/activate
-# Windows
-# .venv\Scripts\activate
+# Windows CMD: .venv\Scripts\activate.bat
+# Windows PowerShell: .venv\Scripts\Activate.ps1
+# macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
 pip install -e .
 cp .env.example .env
 ```
 
-برای تولید پاسخ باید `OPENAI_API_KEY` را در فایل `.env` قرار دهید. بارگذاری، embedding و بازیابی از مدل محلی Sentence Transformers و پایگاه برداری محلی استفاده می‌کنند.
+برای تولید پاسخ باید `OPENAI_API_KEY` را در فایل `.env` قرار دهید. Ingestion و Retrieval از مدل embedding محلی استفاده می‌کنند و به کلید API مدل زبانی نیاز ندارند.
 
-فایل‌ها را داخل پوشه `data/` قرار دهید و اجرا کنید:
-
-```bash
-python -m rag_engine.cli ingest data
-python -m rag_engine.cli ask "اسناد درباره هوش مصنوعی چه می‌گویند؟"
-```
-
-اجرای API:
-
-```bash
-uvicorn rag_engine.api:app --reload
-```
-
-- `POST /ingest` با ورودی `{"directory": "data"}`
-- `POST /ask` با ورودی `{"question": "سؤال شما", "top_k": 5}`
-- `GET /health`
-
-## معماری
+## معماری بازیابی ترکیبی
 
 ```text
 Documents -> Loaders -> Chunking -> Embeddings -> ChromaDB
-                                                   |
-Question -> Query Embedding -> Retrieval -> Context
-                                                   |
-                                               LLM
-                                                   |
-                                         Answer + Citations
+                              |                     |
+                              +------> BM25 Index <-+
+                                          |
+Question -> Dense Search + BM25 Search
+                    |
+          Reciprocal Rank Fusion
+                    |
+             Ranked Chunks -> Context -> LLM
+                                      |
+                              Answer + Citations
 ```
+
+- **Dense Retrieval:** جست‌وجوی معنایی با embedding و ChromaDB.
+- **Sparse Retrieval:** الگوریتم Okapi BM25 روی متن chunkها؛ بدون وابستگی خارجی.
+- **RRF:** ترکیب رتبه‌ها، به‌جای مقایسه مستقیم امتیازهای ناهم‌مقیاس Dense و BM25.
+
+فرمول امتیاز RRF:
+
+`score(d) = Σ weight / (rrf_k + rank(d))`
+
+وزن پیش‌فرض هر دو مسیر ۱ و مقدار `RRF_K=60` است. ایندکس BM25 هنگام شروع Pipeline از داده‌های پایدار ChromaDB ساخته و پس از ingestion به‌روزرسانی می‌شود.
 
 ## تنظیمات
 
-تنظیمات در `.env.example` مستند شده‌اند؛ از جمله مدل embedding، مسیر پایگاه داده، اندازه chunk، میزان overlap، تعداد نتایج بازیابی و مدل زبانی.
+| متغیر | کاربرد |
+|---|---|
+| `RETRIEVAL_MODE` | حالت `hybrid` (پیش‌فرض) یا `dense` |
+| `HYBRID_CANDIDATE_K` | تعداد کاندیداهای هر مسیر پیش از ادغام |
+| `RRF_K` | پارامتر هموارسازی RRF |
+| `DENSE_WEIGHT` / `SPARSE_WEIGHT` | وزن مسیرهای بازیابی |
+| `EMBEDDING_MODEL` | مدل embedding |
+| `CHROMA_PATH` | مسیر پایگاه برداری |
+| `CHROMA_COLLECTION` | نام Collection |
+| `CHUNK_SIZE` / `CHUNK_OVERLAP` | اندازه chunk و هم‌پوشانی |
+| `TOP_K` | تعداد نتایج نهایی |
+| `OPENAI_API_KEY` | کلید API برای تولید پاسخ |
 
-## تست
+برای استفاده از خط مبنای قبلی، مقدار `RETRIEVAL_MODE=dense` را تنظیم کنید.
+
+## تست و بنچمارک مقایسه‌ای
 
 ```bash
 pytest
-```
 
-ماژول ارزیابی معیارهای Precision@K، Recall@K، Reciprocal Rank و Hit Rate@K را محاسبه می‌کند. تابع `evaluate_retrieval()` مجموعه پرسش‌های برچسب‌گذاری‌شده را روی هر Retriever سازگار اجرا می‌کند و نتایج تک‌تک پرسش‌ها و میانگین معیارها را برمی‌گرداند. تست‌های واحد به کلید API یا دانلود مدل embedding نیاز ندارند.
-
-### بنچمارک قابل تکرار بازیابی
-
-یک بنچمارک کوچک و دستی شامل سه سند فنی و ۲۰ پرسش طبیعی به پروژه اضافه شده است. برچسب‌گذاری در سطح سند انجام می‌شود؛ یعنی سندی مرتبط است که شواهد لازم برای پاسخ را در خود داشته باشد. اسکریپت، chunkهای رتبه‌بندی‌شده را به اسناد یکتا تبدیل می‌کند و رتبه هر سند را بر اساس بهترین chunk آن در نظر می‌گیرد.
-
-```bash
+# مقایسه Dense و Hybrid
 python scripts/run_benchmark.py
-# تغییر تعداد اسناد یکتای ارزیابی‌شده
-python scripts/run_benchmark.py --k 2
+
+# تغییر K
+python scripts/run_benchmark.py --k 1
+python scripts/run_benchmark.py --k 3
+
+# اجرای جداگانه هر روش
+python scripts/run_benchmark.py --mode dense
+python scripts/run_benchmark.py --mode hybrid
 ```
 
-نتیجه به‌صورت JSON شامل معیارهای کلی و جزئیات هر پرسش چاپ می‌شود. بنچمارک از مدل embedding محلی تنظیم‌شده و یک Collection جداگانه در مسیر `.benchmark_chroma/` استفاده می‌کند و نیازی به فراخوانی API مدل زبانی ندارد؛ البته ممکن است اجرای اول مدل embedding را دانلود کند. مقدار پیش‌فرض `k=2` انتخاب شده تا رتبه‌بندی در مجموعه سه‌سندی معنادار بماند؛ برای بررسی برش‌های دیگر می‌توان از `--k 1` یا `--k 3` استفاده کرد. این بنچمارک یک خط مبنای شفاف برای مقایسه تغییرات است، نه رتبه‌بندی عمومی مدل‌ها. پرسش‌ها و برچسب‌ها در فایل `benchmarks/datasets/rag_fundamentals_v1.json` قرار دارند.
+بنچمارک شامل سه سند فنی و ۲۰ پرسش برچسب‌گذاری‌شده است. هر دو روش روی corpus، برچسب‌ها و K یکسان ارزیابی می‌شوند و خروجی JSON شامل معیارهای کلی و جزئیات هر سؤال است. این بنچمارک کوچک ابزار تشخیصی است، نه رتبه‌بندی عمومی مدل‌ها.
 
 ## محدودیت‌های فعلی
 
-- PDF اسکن‌شده به OCR نیاز دارد و فعلاً پشتیبانی نمی‌شود.
-- بازیابی فعلی dense است؛ Hybrid Search و Cross-Encoder Reranking در برنامه توسعه قرار دارند.
-- لایه تولید پاسخ در حال حاضر از OpenAI Chat Completions استفاده می‌کند.
-- این پروژه در حال توسعه است و ادعای گواهی یا آمادگی Production ندارد.
-
-
-## ساختار بنچمارک
-
-- `benchmarks/corpus/`: سه سند مرجع فنی
-- `benchmarks/datasets/`: مجموعه پرسش‌ها و برچسب‌های نسخه‌بندی‌شده
-- `scripts/run_benchmark.py`: اجرای بنچمارک و تولید گزارش JSON
+- Tokenizer فعلی BM25 حروف و اعداد انگلیسی را lowercase می‌کند؛ stemming و تحلیل‌گرهای زبان‌محور هنوز اضافه نشده‌اند.
+- PDF اسکن‌شده به OCR نیاز دارد.
+- ادغام Hybrid در سطح chunk انجام می‌شود؛ ارزیابی سطح سند chunkها را بر اساس source یکتا می‌کند.
+- Cross-Encoder Reranking در برنامه توسعه قرار دارد.
+- امتیاز بالای یک بنچمارک کوچک تضمین‌کننده عملکرد عمومی یا آمادگی Production نیست.
