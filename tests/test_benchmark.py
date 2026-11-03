@@ -1,4 +1,4 @@
-from scripts.run_benchmark import DocumentLevelRetriever
+from rag_engine.benchmark import DocumentLevelRetriever
 
 
 class FakeChunkRetriever:
