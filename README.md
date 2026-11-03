@@ -99,7 +99,7 @@ python scripts/run_benchmark.py
 python scripts/run_benchmark.py --k 2
 ```
 
-The runner indexes the benchmark corpus in a separate local ChromaDB collection under `.benchmark_chroma/`, uses the configured local embedding model, and prints JSON containing aggregate and per-query metrics. It does not call an LLM API; the embedding model may be downloaded on first run. The default `k=3` reflects the three-document corpus. This is a transparent regression baseline, not a general-purpose leaderboard. See `benchmarks/datasets/rag_fundamentals_v1.json` for the queries and relevance labels.
+The runner indexes the benchmark corpus in a separate local ChromaDB collection under `.benchmark_chroma/`, uses the configured local embedding model, and prints JSON containing aggregate and per-query metrics. It does not call an LLM API; the embedding model may be downloaded on first run. The default `k=2` keeps the ranking meaningful for a three-document corpus; use `--k 1` or `--k 3` to inspect other cutoffs. This is a transparent regression baseline, not a general-purpose leaderboard. See `benchmarks/datasets/rag_fundamentals_v1.json` for the queries and relevance labels.
 
 ## Current scope and limitations
 
