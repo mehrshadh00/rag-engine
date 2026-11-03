@@ -90,7 +90,8 @@ def main() -> None:
     ]
 
     retriever = DocumentLevelRetriever(
-        Retriever(pipeline.embedder, pipeline.vector_store)
+        Retriever(pipeline.embedder, pipeline.vector_store),
+        candidate_k=max(1, ingestion["chunks"]),
     )
     from rag_engine.evaluation import evaluate_retrieval
 
