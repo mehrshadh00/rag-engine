@@ -689,7 +689,7 @@
     },
     {
       "id": "q061",
-      "query": "Why should a hybrid retriever apply the same access restrictions to both semantic and lexical search, and what risk appears if it does not?",
+      "query": "Why can a rare term improve a BM25 ranking, and how can a metadata constraint further narrow the set of eligible documents?",
       "category": "multi_hop",
       "split": "dev",
       "answerable": true,
