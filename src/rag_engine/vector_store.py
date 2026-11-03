@@ -15,7 +15,8 @@ class ChromaVectorStore:
 
     def delete_sources(self, sources: list[str]) -> None:
         """Remove previously indexed records for the supplied source paths."""
-        for source in set(sources):
+        # dict.fromkeys removes duplicates while preserving input order.
+        for source in dict.fromkeys(sources):
             self.collection.delete(where={"source": source})
 
     def add(self, chunks: list[dict], embeddings: list[list[float]]) -> int:
