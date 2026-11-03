@@ -4,13 +4,11 @@ from __future__ import annotations
 import argparse
 import json
 import re
-import tempfile
 from collections import Counter
 from dataclasses import replace
 from pathlib import Path
 
 from rag_engine.benchmark import DocumentLevelRetriever
-from rag_engine.bm25 import BM25Retriever
 from rag_engine.config import settings
 from rag_engine.evaluation import evaluate_retrieval
 from rag_engine.hybrid import HybridRetriever
@@ -132,41 +130,39 @@ def main() -> None:
         for item in selected
     ]
 
-    # A fresh temporary Chroma directory prevents stale vectors from previous
-    # benchmark runs or a changed corpus from contaminating this evaluation.
-    with tempfile.TemporaryDirectory(prefix="rag-engine-benchmark-") as temp_db:
-        benchmark_config = replace(
-            settings,
-            chroma_path=temp_db,
-            chroma_collection="rag_benchmark",
-        )
-        pipeline = RAGPipeline(config=benchmark_config)
-        ingestion = pipeline.ingest(str(corpus_dir))
-        if ingestion["chunks"] <= 0:
-            raise RuntimeError("Benchmark corpus produced no indexed chunks")
+    dataset_slug = re.sub(r"[^a-z0-9_-]+", "_", dataset_path.stem.lower()).strip("_")
+    collection_name = f"bench_{dataset_slug}"[:63]
+    benchmark_config = replace(
+        settings,
+        chroma_path=str(ROOT / ".benchmark_chroma"),
+        chroma_collection=collection_name,
+    )
+    pipeline = RAGPipeline(config=benchmark_config)
+    # Clear this dataset's collection so removed/changed corpus files cannot
+    # leave stale records that contaminate the benchmark.
+    pipeline.vector_store.clear()
+    ingestion = pipeline.ingest(str(corpus_dir))
+    if ingestion["chunks"] <= 0:
+        raise RuntimeError("Benchmark corpus produced no indexed chunks")
 
-        candidate_k = ingestion["chunks"]
-        dense = Retriever(pipeline.embedder, pipeline.vector_store)
-        bm25 = pipeline.sparse_retriever
-        hybrid = HybridRetriever(
-            dense,
-            bm25,
-            candidate_k=candidate_k,
-            dense_weight=benchmark_config.dense_weight,
-            sparse_weight=benchmark_config.sparse_weight,
-            rrf_k=benchmark_config.rrf_k,
-        )
+    candidate_k = ingestion["chunks"]
+    dense = Retriever(pipeline.embedder, pipeline.vector_store)
+    bm25 = pipeline.sparse_retriever
+    hybrid = HybridRetriever(
+        dense,
+        bm25,
+        candidate_k=candidate_k,
+        dense_weight=benchmark_config.dense_weight,
+        sparse_weight=benchmark_config.sparse_weight,
+        rrf_k=benchmark_config.rrf_k,
+    )
 
-        available_modes = {"dense": dense, "bm25": bm25, "hybrid": hybrid}
-        selected_modes = (
-            list(available_modes)
-            if args.mode == "all"
-            else [args.mode]
-        )
-        reports = {
-            mode: evaluate_mode(available_modes[mode], cases, args.k, candidate_k)
-            for mode in selected_modes
-        }
+    available_modes = {"dense": dense, "bm25": bm25, "hybrid": hybrid}
+    selected_modes = list(available_modes) if args.mode == "all" else [args.mode]
+    reports = {
+        mode: evaluate_mode(available_modes[mode], cases, args.k, candidate_k)
+        for mode in selected_modes
+    }
 
     for report in reports.values():
         for source_case, result in zip(selected, report["results"]):
@@ -180,7 +176,7 @@ def main() -> None:
         "corpus_path": str(corpus_dir),
         "split": args.split,
         "evaluation_level": dataset.get("evaluation_level", "document"),
-        "embedding_model": settings.embedding_model,
+        "embedding_model": benchmark_config.embedding_model,
         "retrieval_modes": selected_modes,
         "k": args.k,
         "corpus_documents": len(corpus_files),
