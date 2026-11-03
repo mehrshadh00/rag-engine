@@ -87,7 +87,7 @@ Run unit tests:
 pytest
 ```
 
-A small retrieval metric module provides Precision@K, Recall@K, and Reciprocal Rank. Tests use lightweight fakes and do not require API credentials or downloading the embedding model.
+A retrieval evaluation module provides Precision@K, Recall@K, Reciprocal Rank (MRR at the dataset level), and Hit Rate@K. `evaluate_retrieval()` runs a labeled query dataset against any compatible retriever and returns per-query results plus aggregate metrics. Tests use lightweight fakes and do not require API credentials or downloading the embedding model.
 
 ## Current scope and limitations
 
