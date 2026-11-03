@@ -1,7 +1,6 @@
 """Load supported local documents into normalized text records."""
 
 from pathlib import Path
-from pypdf import PdfReader
 
 SUPPORTED_EXTENSIONS = {".txt", ".md", ".pdf"}
 
@@ -14,6 +13,10 @@ def load_document(path: str | Path) -> list[dict]:
 
     records = []
     if suffix == ".pdf":
+        try:
+            from pypdf import PdfReader
+        except ImportError as exc:
+            raise RuntimeError("Install pypdf to ingest PDF documents") from exc
         reader = PdfReader(str(path))
         for page_number, page in enumerate(reader.pages, start=1):
             text = (page.extract_text() or "").strip()
