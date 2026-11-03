@@ -131,7 +131,7 @@ def test_answerability_labels_are_validated():
             FakeRetriever({}),
             [{"query": "bad label", "relevant_ids": [], "answerable": True}],
         )
-    with pytest.raises(ValueError, match="must have relevant_ids"):
+    with pytest.raises(ValueError, match="has relevant_ids"):
         evaluate_retrieval(
             FakeRetriever({}),
             [{"query": "bad label", "relevant_ids": ["doc-a"], "answerable": False}],
