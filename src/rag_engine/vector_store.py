@@ -1,10 +1,12 @@
 """ChromaDB-backed persistent vector storage."""
 
-import chromadb
-
 
 class ChromaVectorStore:
     def __init__(self, path: str, collection_name: str):
+        try:
+            import chromadb
+        except ImportError as exc:
+            raise RuntimeError("Install chromadb to use the persistent vector store") from exc
         self.client = chromadb.PersistentClient(path=path)
         self.collection = self.client.get_or_create_collection(
             name=collection_name,
