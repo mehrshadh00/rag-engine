@@ -25,6 +25,14 @@ class RAGPipeline:
         )
         if not chunks:
             return {"documents": len(documents), "chunks": 0}
+
+        sources = list({
+            str(item.get("metadata", {}).get("source", "unknown"))
+            for item in chunks
+        })
+        if hasattr(self.vector_store, "delete_sources"):
+            self.vector_store.delete_sources(sources)
+
         embeddings = self.embedder.embed_documents([item["text"] for item in chunks])
         stored = self.vector_store.add(chunks, embeddings)
         return {"documents": len(documents), "chunks": stored}
@@ -32,18 +40,28 @@ class RAGPipeline:
     def ask(self, question: str, top_k: int | None = None) -> dict:
         if not question.strip():
             raise ValueError("Question cannot be empty")
+        if top_k is not None and top_k <= 0:
+            raise ValueError("top_k must be positive")
+
         retriever = Retriever(self.embedder, self.vector_store)
         matches = retriever.retrieve(question, top_k or self.config.top_k)
         context = build_context(matches)
+        sources = [
+            {"id": item["id"], "source": item.get("metadata", {}).get("source"),
+             "page": item.get("metadata", {}).get("page"), "distance": item.get("distance")}
+            for item in matches
+        ]
+
+        if not context:
+            return {
+                "answer": "I could not find relevant information in the indexed documents.",
+                "sources": [],
+            }
+
         generator = self.generator
         if generator is None:
             generator = OpenAIAnswerGenerator(
                 self.config.openai_api_key, self.config.openai_model
             )
         answer = generator.answer(question, context)
-        sources = [
-            {"id": item["id"], "source": item.get("metadata", {}).get("source"),
-             "page": item.get("metadata", {}).get("page"), "distance": item.get("distance")}
-            for item in matches
-        ]
         return {"answer": answer, "sources": sources}
