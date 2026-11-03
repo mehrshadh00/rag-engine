@@ -1088,7 +1088,7 @@
     },
     {
       "id": "q092",
-      "query": "What exact chunk size in tokens was proven to be optimal for all technical documents?",
+      "query": "What exact numerical values of k1 and b were used in a specific BM25 experiment reported by the corpus authors?",
       "category": "unanswerable",
       "split": "dev",
       "answerable": false,
@@ -1097,7 +1097,7 @@
     },
     {
       "id": "q093",
-      "query": "Which programming language implementation of BM25 is mandated by the corpus?",
+      "query": "What exact token-count chunk size did the corpus authors use in a measured comparison of chunk-size settings?",
       "category": "unanswerable",
       "split": "test",
       "answerable": false,
