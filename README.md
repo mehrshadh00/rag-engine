@@ -1,0 +1,123 @@
+# RAG Engine
+
+A modular Retrieval-Augmented Generation (RAG) system for grounded question answering over PDF, Markdown, and text documents.
+
+## What it does
+
+1. Loads local PDF, Markdown, and TXT files.
+2. Splits documents into overlapping chunks while preserving source metadata.
+3. Encodes chunks with a local Sentence Transformers embedding model.
+4. Stores vectors in a persistent ChromaDB collection.
+5. Retrieves relevant passages and builds a source-attributed context.
+6. Generates an answer with an OpenAI-compatible chat model, with instructions to abstain when evidence is insufficient.
+7. Exposes ingestion and question-answering endpoints through FastAPI.
+
+## Architecture
+
+```text
+Files -> Loaders -> Chunker -> Embeddings -> ChromaDB
+                                           |
+Question -> Embedding -> Retriever -> Context + Sources
+                                           |
+                                      Chat Model
+                                           |
+                                Answer + Citations
+```
+
+## Quick start
+
+Python 3.11 or 3.12 is recommended.
+
+```bash
+git clone https://github.com/mehrshadh00/rag-engine.git
+cd rag-engine
+python -m venv .venv
+# macOS/Linux: source .venv/bin/activate
+# Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env
+```
+
+Set `OPENAI_API_KEY` in `.env` to enable answer generation. Ingestion and retrieval use a local embedding model and persistent ChromaDB storage.
+
+Add documents under `data/`, then ingest them:
+
+```bash
+python -m rag_engine.cli ingest data
+```
+
+Ask a question:
+
+```bash
+python -m rag_engine.cli ask "What do the documents say about artificial intelligence?"
+```
+
+Run the API:
+
+```bash
+uvicorn rag_engine.api:app --reload
+```
+
+- `POST /ingest` with JSON: `{"directory": "data"}`
+- `POST /ask` with JSON: `{"question": "Your question", "top_k": 5}`
+- `GET /health`
+
+The first run downloads the configured embedding model from Hugging Face.
+
+## Configuration
+
+See `.env.example`. Important settings include:
+
+| Variable | Purpose |
+|---|---|
+| `EMBEDDING_MODEL` | Sentence Transformers model used for document and query vectors |
+| `CHROMA_PATH` | Persistent vector database directory |
+| `CHROMA_COLLECTION` | Chroma collection name |
+| `CHUNK_SIZE` / `CHUNK_OVERLAP` | Chunking parameters |
+| `TOP_K` | Number of passages retrieved |
+| `OPENAI_API_KEY` | API key for answer generation |
+| `OPENAI_MODEL` | Chat completion model |
+
+## Evaluation and tests
+
+Run unit tests:
+
+```bash
+pytest
+```
+
+A small retrieval metric module provides Precision@K, Recall@K, and Reciprocal Rank. Tests use lightweight fakes and do not require API credentials or downloading the embedding model.
+
+## Current scope and limitations
+
+- PDF extraction is text-based; scanned PDFs require OCR, which is not included yet.
+- Retrieval currently uses dense semantic similarity. Hybrid search and cross-encoder reranking are planned extensions.
+- The answer-generation layer currently targets the OpenAI chat completions API.
+- This is an actively developed portfolio project, not a claim of production certification.
+
+## Project structure
+
+```text
+src/rag_engine/
+  api.py          # FastAPI endpoints
+  cli.py          # Command-line interface
+  config.py       # Environment-based settings
+  ingestion.py    # PDF/TXT/Markdown loaders
+  chunking.py     # Overlap-aware text chunking
+  embeddings.py   # Sentence Transformers adapter
+  vector_store.py # ChromaDB persistence
+  retrieval.py    # Similarity retrieval
+  generation.py   # Grounded answer generation
+  pipeline.py     # End-to-end orchestration
+  evaluation.py   # Retrieval metrics
+tests/
+.github/workflows/tests.yml
+```
+
+## فارسی
+
+این پروژه یک موتور ماژولار RAG برای پرسش‌وپاسخ مستند بر اساس فایل‌های PDF، Markdown و TXT است. اسناد را بارگذاری و قطعه‌بندی می‌کند، embedding می‌سازد، بردارها را در ChromaDB ذخیره می‌کند، مرتبط‌ترین بخش‌ها را بازیابی می‌کند و پاسخ را همراه با ارجاع به منبع تولید می‌کند. برای توضیح کامل تنظیمات و معماری، همین README را دنبال کنید.
+
+## License
+
+MIT
