@@ -60,7 +60,7 @@ def load_dataset() -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run the RAG Fundamentals retrieval benchmark")
-    parser.add_argument("--k", type=int, default=3, help="Number of unique source documents to evaluate")
+    parser.add_argument("--k", type=int, default=2, help="Number of unique source documents to evaluate")
     args = parser.parse_args()
 
     if args.k <= 0:
