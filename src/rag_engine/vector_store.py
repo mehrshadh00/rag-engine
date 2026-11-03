@@ -11,9 +11,16 @@ class ChromaVectorStore:
             metadata={"hnsw:space": "cosine"},
         )
 
+    def delete_sources(self, sources: list[str]) -> None:
+        """Remove previously indexed records for the supplied source paths."""
+        for source in set(sources):
+            self.collection.delete(where={"source": source})
+
     def add(self, chunks: list[dict], embeddings: list[list[float]]) -> int:
         if not chunks:
             return 0
+        if len(chunks) != len(embeddings):
+            raise ValueError("Each chunk must have exactly one embedding")
         self.collection.upsert(
             ids=[item["id"] for item in chunks],
             documents=[item["text"] for item in chunks],
@@ -23,9 +30,15 @@ class ChromaVectorStore:
         return len(chunks)
 
     def query(self, embedding: list[float], top_k: int = 5) -> list[dict]:
+        if top_k <= 0:
+            raise ValueError("top_k must be positive")
+        count = self.collection.count()
+        if count == 0:
+            return []
+
         result = self.collection.query(
             query_embeddings=[embedding],
-            n_results=min(top_k, max(self.collection.count(), 1)),
+            n_results=min(top_k, count),
             include=["documents", "metadatas", "distances"],
         )
         matches = []
