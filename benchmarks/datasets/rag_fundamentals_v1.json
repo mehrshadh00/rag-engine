@@ -1,0 +1,147 @@
+{
+  "name": "RAG Fundamentals Retrieval Benchmark",
+  "version": "1.0.0",
+  "description": "A small, manually labeled, document-level benchmark over three concise technical documents. Labels identify the source document containing the evidence.",
+  "queries": [
+    {
+      "id": "q01",
+      "query": "What does a text embedding represent?",
+      "relevant_sources": [
+        "embeddings-and-retrieval.md"
+      ]
+    },
+    {
+      "id": "q02",
+      "query": "Why should query and document vectors come from compatible embedding spaces?",
+      "relevant_sources": [
+        "embeddings-and-retrieval.md"
+      ]
+    },
+    {
+      "id": "q03",
+      "query": "How are cosine similarity and cosine distance interpreted differently?",
+      "relevant_sources": [
+        "embeddings-and-retrieval.md"
+      ]
+    },
+    {
+      "id": "q04",
+      "query": "What changes about dot product scoring when vectors are normalized?",
+      "relevant_sources": [
+        "embeddings-and-retrieval.md"
+      ]
+    },
+    {
+      "id": "q05",
+      "query": "Why do chunking systems use overlap between adjacent passages?",
+      "relevant_sources": [
+        "embeddings-and-retrieval.md"
+      ]
+    },
+    {
+      "id": "q06",
+      "query": "What is a weakness of dense semantic search for exact product codes?",
+      "relevant_sources": [
+        "embeddings-and-retrieval.md"
+      ]
+    },
+    {
+      "id": "q07",
+      "query": "How does Reciprocal Rank Fusion combine lexical and dense search rankings?",
+      "relevant_sources": [
+        "embeddings-and-retrieval.md"
+      ]
+    },
+    {
+      "id": "q08",
+      "query": "What is the purpose of a cross-encoder reranker?",
+      "relevant_sources": [
+        "embeddings-and-retrieval.md"
+      ]
+    },
+    {
+      "id": "q09",
+      "query": "What happens during the indexing stage of a RAG workflow?",
+      "relevant_sources": [
+        "rag-architecture.md"
+      ]
+    },
+    {
+      "id": "q10",
+      "query": "Why should chunks retain source filenames and page numbers?",
+      "relevant_sources": [
+        "rag-architecture.md"
+      ]
+    },
+    {
+      "id": "q11",
+      "query": "How should a RAG system respond when retrieved evidence is insufficient?",
+      "relevant_sources": [
+        "rag-architecture.md"
+      ]
+    },
+    {
+      "id": "q12",
+      "query": "Why must retrieved documents be treated as data rather than trusted instructions?",
+      "relevant_sources": [
+        "rag-architecture.md"
+      ]
+    },
+    {
+      "id": "q13",
+      "query": "What is the difference between a retrieval failure and a generation failure?",
+      "relevant_sources": [
+        "rag-architecture.md"
+      ]
+    },
+    {
+      "id": "q14",
+      "query": "Which operational concerns matter before deploying a RAG system in production?",
+      "relevant_sources": [
+        "rag-architecture.md"
+      ]
+    },
+    {
+      "id": "q15",
+      "query": "What information belongs in a labeled retrieval evaluation dataset?",
+      "relevant_sources": [
+        "evaluation-methods.md"
+      ]
+    },
+    {
+      "id": "q16",
+      "query": "How is precision at k calculated when fewer than k results are returned?",
+      "relevant_sources": [
+        "evaluation-methods.md"
+      ]
+    },
+    {
+      "id": "q17",
+      "query": "What does recall at k measure in an information retrieval benchmark?",
+      "relevant_sources": [
+        "evaluation-methods.md"
+      ]
+    },
+    {
+      "id": "q18",
+      "query": "How is mean reciprocal rank related to the position of the first relevant result?",
+      "relevant_sources": [
+        "evaluation-methods.md"
+      ]
+    },
+    {
+      "id": "q19",
+      "query": "Why should only one major retrieval component be changed at a time during experiments?",
+      "relevant_sources": [
+        "evaluation-methods.md"
+      ]
+    },
+    {
+      "id": "q20",
+      "query": "Why can a high score on a small benchmark fail to generalize to other domains?",
+      "relevant_sources": [
+        "evaluation-methods.md"
+      ]
+    }
+  ]
+}
