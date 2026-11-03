@@ -14,8 +14,9 @@ def test_tokenize_is_case_insensitive_and_ignores_punctuation():
 
 def test_bm25_ranks_exact_term_match_first():
     results = BM25Retriever(sample_docs()).retrieve("inverse document frequency", top_k=3)
+    assert len(results) == 1
     assert results[0]["id"] == "a"
-    assert results[0]["bm25_score"] > results[1]["bm25_score"]
+    assert results[0]["bm25_score"] > 0
 
 def test_bm25_returns_empty_when_no_terms_match():
     assert BM25Retriever(sample_docs()).retrieve("quantum banana", top_k=3) == []
