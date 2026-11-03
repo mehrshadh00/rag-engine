@@ -15,3 +15,6 @@ chroma_db/
 .DS_Store
 .idea/
 .vscode/
+
+# Local benchmark vector index
+.benchmark_chroma/
