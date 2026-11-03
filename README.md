@@ -108,24 +108,36 @@ pytest
 
 The evaluation module reports Precision@K, Recall@K, Reciprocal Rank, and Hit Rate@K. Unit tests use lightweight fakes and do not require API credentials or downloading the embedding model.
 
-### Dense vs. hybrid benchmark
+### Versioned retrieval benchmark
 
-The manually labeled benchmark contains three technical documents and 20 natural-language queries. Labels are document-level. The runner compares dense-only and hybrid retrieval on the same corpus, labels, and K.
+The v2 benchmark contains 15 technical documents and 100 manually labeled, document-level queries. It is stratified into five categories: direct factual, semantic paraphrase, exact terminology, multi-hop, and unanswerable. Each category has 12 development queries and 8 held-out test queries (60 dev / 40 test overall).
+
+The runner compares dense-only, BM25-only, and hybrid RRF retrieval using the same corpus, labels, and final document cutoff. By default it evaluates only the development split; use the held-out test split only after retrieval choices are finalized.
 
 ```bash
-# Compare both modes (default)
+# Compare Dense, BM25, and Hybrid on dev (default)
 python scripts/run_benchmark.py
 
-# Compare at a different document cutoff
+# Change the final number of unique source documents
 python scripts/run_benchmark.py --k 1
 python scripts/run_benchmark.py --k 3
 
-# Run one mode only
+# Select one retrieval method
 python scripts/run_benchmark.py --mode dense
+python scripts/run_benchmark.py --mode bm25
 python scripts/run_benchmark.py --mode hybrid
+
+# Evaluate the held-out test split explicitly
+python scripts/run_benchmark.py --split test
+
+# Run all labeled queries, or supply another compatible dataset/corpus
+python scripts/run_benchmark.py --split all
+python scripts/run_benchmark.py --dataset benchmarks/datasets/rag_fundamentals_v2.json --corpus-dir benchmarks/corpus_v2
 ```
 
-The benchmark uses a separate Chroma collection under `.benchmark_chroma/`, prints aggregate and per-query metrics for each mode, and does not call an LLM API. This small dataset is a diagnostic baseline, not a general-purpose leaderboard.
+The report includes Precision@K, Recall@K, MRR, and Hit Rate@K for answerable queries; multi-hop complete-evidence rate; unanswerable false-positive rate; and category-level breakdowns. Unanswerable queries are excluded from conventional relevance averages because they have no relevant source labels. The false-positive diagnostic measures whether any result was returned, not whether the system can abstain at answer-generation time.
+
+Each run clears its dataset-specific Chroma collection before ingestion to prevent stale vectors from contaminating results. The benchmark does not call an LLM API. It is a reproducible diagnostic dataset, not a general-purpose leaderboard; its conclusions are limited by the corpus and human relevance labels.
 
 ## Current scope and limitations
 
