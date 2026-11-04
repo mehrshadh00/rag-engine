@@ -105,39 +105,75 @@ pytest
 
 Tests use lightweight fakes and do not require API credentials or model downloads.
 
-### Versioned retrieval benchmark
+### Versioned retrieval benchmark (v2)
 
 The v2 benchmark contains 15 technical documents and 100 manually labeled, document-level queries. It is stratified into five categories: direct factual, semantic paraphrase, exact terminology, multi-hop, and unanswerable. Each category has 12 development queries and 8 held-out test queries (60 dev / 40 test overall).
 
-The runner compares dense-only, BM25-only, hybrid RRF, and hybrid RRF followed by Cross-Encoder reranking. For the reranked mode, the first-stage dense and sparse retrievers each use `HYBRID_CANDIDATE_K`, RRF fuses their results, and only the top `RERANK_CANDIDATE_K` chunks are passed to the Cross-Encoder. This matches the runtime candidate-generation settings. The reranker scores chunks before document-level deduplication, so the evaluation cutoff remains a number of unique source documents. The report records both candidate settings. By default only the development split is evaluated.
+The runner compares four methods:
+
+1. Dense-only retrieval
+2. BM25-only retrieval
+3. Hybrid retrieval with weighted Reciprocal Rank Fusion
+4. Hybrid retrieval followed by Cross-Encoder reranking
+
+For the reranked mode, the first-stage dense and sparse retrievers each use `HYBRID_CANDIDATE_K`, RRF fuses their results, and only the top `RERANK_CANDIDATE_K` chunks are passed to the Cross-Encoder. This matches the runtime candidate-generation settings. The reranker scores chunks before document-level deduplication, so the evaluation cutoff is a number of unique source documents. The report records both candidate settings.
+
+### Benchmark results
+
+All results below use **K=3 unique source documents**. The corpus contained 43 chunks at evaluation time. The configured first-stage candidate limit was 50, so each baseline retriever returned up to the 43 available chunks; the reranked path passed at most 20 fused candidates to the Cross-Encoder.
+
+**Development split — 60 queries**
+
+| Metric | Dense | BM25 | Hybrid | Hybrid + Reranker |
+|---|---:|---:|---:|---:|
+| Precision@3 | 35.42% | 36.11% | 37.50% | **39.58%** |
+| Recall@3 | 88.54% | 89.58% | 91.67% | **96.88%** |
+| MRR | 88.54% | 84.38% | 87.15% | **90.63%** |
+| Hit Rate@3 | 95.83% | 95.83% | 95.83% | **100.00%** |
+| Multi-hop complete evidence | 41.67% | 50.00% | 66.67% | **75.00%** |
+
+**Held-out test split — 40 queries**
+
+| Metric | Dense | BM25 | Hybrid | Hybrid + Reranker |
+|---|---:|---:|---:|---:|
+| Precision@3 | 35.42% | 35.42% | 37.50% | **39.58%** |
+| Recall@3 | 87.50% | 87.50% | 92.19% | **96.88%** |
+| MRR | 83.85% | 76.56% | 84.90% | **89.58%** |
+| Hit Rate@3 | 93.75% | 93.75% | 96.88% | **100.00%** |
+| Multi-hop complete evidence | 50.00% | 50.00% | 62.50% | **75.00%** |
+
+On this dataset, Hybrid + Reranker achieved the highest value for every reported retrieval metric on both splits. Compared with Hybrid on the held-out test split, reranking improved Precision@3 by 2.08 percentage points, Recall@3 by 4.69 points, MRR by 4.69 points, Hit Rate@3 by 3.12 points, and multi-hop complete evidence by 12.50 points.
+
+### Interpretation and limitations
+
+- These are results from one fixed corpus and one manually labeled dataset. They are useful for comparing implementations under the same conditions, not evidence of universal RAG performance or a statistically conclusive improvement across domains.
+- The test split contains 40 queries (8 per category); small sample sizes can make metric changes sensitive to individual examples.
+- The `unanswerable_false_positive_rate_at_k` was 1.00 for all four methods on both splits. This diagnostic means retrieval returned at least one document for every unanswerable query. It does **not** measure whether the answer-generation layer can abstain. A separate answerability / abstention mechanism and evaluation are still needed.
+- Reranking only reorders retrieved candidates. It cannot recover relevant chunks that first-stage retrieval did not return, and it adds inference latency.
+- The benchmark evaluates document retrieval, not answer factuality, citation correctness, latency, throughput, or end-to-end generation quality.
+
+Run the benchmark:
 
 ```bash
-# Compare all four methods on dev (downloads the Cross-Encoder on first run)
-python scripts/run_benchmark.py
+# Development split (default)
+python scripts/run_benchmark.py --split dev --k 3
+
+# Held-out test split; run after development decisions are finalized
+python scripts/run_benchmark.py --split test --k 3
 
 # Compare only the reranked hybrid method
-python scripts/run_benchmark.py --mode hybrid-reranked
+python scripts/run_benchmark.py --mode hybrid-reranked --split dev
 
 # Compare retrieval baselines without loading the Cross-Encoder
-python scripts/run_benchmark.py --mode hybrid
-
-# Change the final number of unique source documents
-python scripts/run_benchmark.py --k 1
-python scripts/run_benchmark.py --k 3
-
-# Evaluate the held-out test split only after decisions are finalized
-python scripts/run_benchmark.py --split test
+python scripts/run_benchmark.py --mode hybrid --split dev
 ```
 
-The report includes Precision@K, Recall@K, MRR, Hit Rate@K, multi-hop complete-evidence rate, unanswerable false-positive rate, and category-level breakdowns. The unanswerable diagnostic measures whether any result was returned, not whether generation can abstain.
-
-Each run clears its dataset-specific Chroma collection before ingestion. The benchmark does not call an LLM API. It is a reproducible diagnostic dataset, not a general-purpose leaderboard; conclusions are limited by this corpus and its human relevance labels.
+Each run clears its dataset-specific Chroma collection before ingestion. The benchmark does not call an LLM API. Keep the test split held out when tuning retrieval parameters.
 
 ## Current scope and limitations
 
 - BM25 currently uses a lowercase alphanumeric tokenizer; stemming and language-specific analyzers are not included.
 - PDF extraction is text-based; scanned PDFs require OCR, which is not included yet.
-- Reranking only reorders retrieved candidates; candidate recall remains dependent on the first-stage retriever.
 - A local demonstration is not automatically a production-ready knowledge system.
 
 ## Project structure
