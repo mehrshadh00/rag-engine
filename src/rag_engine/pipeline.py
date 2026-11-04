@@ -1,4 +1,5 @@
 """End-to-end ingestion and question-answering orchestration."""
+from .answerability import is_answerable
 from .bm25 import BM25Retriever
 from .chunking import chunk_documents
 from .config import settings
@@ -6,17 +7,23 @@ from .embeddings import SentenceTransformerEmbedder
 from .generation import OpenAIAnswerGenerator
 from .hybrid import HybridRetriever
 from .ingestion import load_directory
+from .reranking import CrossEncoderReranker
 from .retrieval import Retriever, build_context
 from .vector_store import ChromaVectorStore
 
+
 class RAGPipeline:
-    def __init__(self, config=settings, embedder=None, vector_store=None, generator=None):
+    def __init__(
+        self, config=settings, embedder=None, vector_store=None, generator=None,
+        reranker=None,
+    ):
         self.config = config
         self.embedder = embedder or SentenceTransformerEmbedder(config.embedding_model)
         self.vector_store = vector_store or ChromaVectorStore(
             config.chroma_path, config.chroma_collection
         )
         self.generator = generator
+        self.reranker = reranker
         existing = self.vector_store.get_all() if hasattr(self.vector_store, "get_all") else []
         self.sparse_retriever = BM25Retriever(existing)
 
@@ -43,16 +50,34 @@ class RAGPipeline:
         self._refresh_sparse_index(chunks)
         return {"documents": len(documents), "chunks": stored}
 
+    def _get_reranker(self):
+        if self.reranker is None:
+            self.reranker = CrossEncoderReranker(
+                getattr(
+                    self.config,
+                    "reranker_model",
+                    "cross-encoder/ms-marco-MiniLM-L-6-v2",
+                )
+            )
+        return self.reranker
+
     def ask(self, question: str, top_k: int | None = None) -> dict:
         if not question.strip():
             raise ValueError("Question cannot be empty")
         if top_k is not None and top_k <= 0:
             raise ValueError("top_k must be positive")
         result_count = top_k or self.config.top_k
+        rerank_enabled = getattr(self.config, "rerank_enabled", False)
+        candidate_count = (
+            max(result_count, getattr(self.config, "rerank_candidate_k", 20))
+            if rerank_enabled else result_count
+        )
         dense_retriever = Retriever(self.embedder, self.vector_store)
-        if getattr(self.config, "retrieval_mode", "hybrid") == "dense":
-            retriever = dense_retriever
-            matches = retriever.retrieve(question, top_k=result_count)
+        mode = getattr(self.config, "retrieval_mode", "hybrid")
+        if mode == "dense":
+            matches = dense_retriever.retrieve(question, top_k=candidate_count)
+        elif mode == "bm25":
+            matches = self.sparse_retriever.retrieve(question, top_k=candidate_count)
         else:
             retriever = HybridRetriever(
                 dense_retriever, self.sparse_retriever,
@@ -63,8 +88,16 @@ class RAGPipeline:
             )
             matches = retriever.retrieve(
                 question,
-                top_k=max(result_count, getattr(self.config, "hybrid_candidate_k", 50)),
-            )[:result_count]
+                top_k=max(candidate_count, getattr(self.config, "hybrid_candidate_k", 50)),
+            )[:candidate_count]
+
+        if rerank_enabled and matches:
+            matches = self._get_reranker().rerank(
+                question, matches, top_k=result_count
+            )
+        else:
+            matches = matches[:result_count]
+
         context = build_context(matches)
         sources = [
             {
@@ -73,6 +106,7 @@ class RAGPipeline:
                 "page": item.get("metadata", {}).get("page"),
                 "distance": item.get("distance"),
                 "rrf_score": item.get("rrf_score"),
+                "rerank_score": item.get("rerank_score"),
             }
             for item in matches
         ]
@@ -80,9 +114,44 @@ class RAGPipeline:
             return {
                 "answer": "I could not find relevant information in the indexed documents.",
                 "sources": [],
+                "answerable": False,
+                "abstained": True,
+                "abstention_reason": "no_retrieved_evidence",
+                "answerability": {"method": "empty_retrieval", "score": None, "threshold": None},
             }
+
+        answerability_enabled = getattr(self.config, "answerability_enabled", True)
+        answerability_threshold = getattr(self.config, "answerability_threshold", 0.0)
+        top_rerank_score = matches[0].get("rerank_score") if matches else None
+        if rerank_enabled and answerability_enabled:
+            if not is_answerable(top_rerank_score, answerability_threshold):
+                return {
+                    "answer": "I cannot answer this question confidently from the indexed documents.",
+                    "sources": [],
+                    "answerable": False,
+                    "abstained": True,
+                    "abstention_reason": "reranker_score_below_threshold",
+                    "answerability": {
+                        "method": "cross_encoder_threshold",
+                        "score": top_rerank_score,
+                        "threshold": answerability_threshold,
+                    },
+                }
         generator = self.generator
         if generator is None:
             generator = OpenAIAnswerGenerator(self.config.openai_api_key, self.config.openai_model)
         answer = generator.answer(question, context)
-        return {"answer": answer, "sources": sources}
+        return {
+            "answer": answer,
+            "sources": sources,
+            "answerable": True if rerank_enabled and answerability_enabled else None,
+            "abstained": False,
+            "abstention_reason": None,
+            "answerability": ({
+                "method": "cross_encoder_threshold",
+                "score": top_rerank_score,
+                "threshold": answerability_threshold,
+            } if rerank_enabled and answerability_enabled else {
+                "method": "not_evaluated", "score": None, "threshold": None
+            }),
+        }

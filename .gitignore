@@ -18,3 +18,4 @@ chroma_db/
 
 # Local benchmark vector index
 .benchmark_chroma/
+*.egg-info/

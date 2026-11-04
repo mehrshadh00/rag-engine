@@ -1,0 +1,1171 @@
+{
+  "name": "RAG Fundamentals Retrieval Benchmark",
+  "version": "2.0.0",
+  "description": "A document-level retrieval benchmark over the versioned 15-document RAG fundamentals corpus. Includes direct factual questions, semantic paraphrases, exact terminology, multi-hop evidence requirements, and unanswerable queries.",
+  "corpus": {
+    "id": "rag_fundamentals_corpus_v2",
+    "path": "benchmarks/corpus_v2",
+    "document_count": 15
+  },
+  "evaluation_level": "document",
+  "label_policy": {
+    "relevance_unit": "source_document",
+    "relevant_sources": "All corpus documents containing evidence that materially supports an answer. Empty for unanswerable queries.",
+    "required_sources": "For multi-hop queries, every source needed to support a complete answer. Empty for other categories.",
+    "answerable": "True only when the corpus contains sufficient evidence to answer the query.",
+    "split": "Each category has 12 dev queries and 8 held-out test queries. Do not tune retrieval parameters on test queries."
+  },
+  "category_counts": {
+    "direct": 20,
+    "paraphrase": 20,
+    "exact_term": 20,
+    "multi_hop": 20,
+    "unanswerable": 20
+  },
+  "split_counts": {
+    "dev": 60,
+    "test": 40
+  },
+  "queries": [
+    {
+      "id": "q001",
+      "query": "What does a RAG system do during its indexing stage?",
+      "category": "direct",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "rag-architecture.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q002",
+      "query": "Why are document embeddings usually computed before a user submits a question?",
+      "category": "direct",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "rag-architecture.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q003",
+      "query": "What information can chunk metadata preserve for provenance?",
+      "category": "direct",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "rag-architecture.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q004",
+      "query": "How does cosine distance relate to cosine similarity?",
+      "category": "direct",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "embeddings-and-retrieval.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q005",
+      "query": "What happens to dot-product scoring when vectors are not normalized?",
+      "category": "direct",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "embeddings-and-retrieval.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q006",
+      "query": "Why can a very small chunk lose useful information?",
+      "category": "direct",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "chunking-strategies.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q007",
+      "query": "What problem does overlap address when splitting a document?",
+      "category": "direct",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "chunking-strategies.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q008",
+      "query": "How does BM25 reduce the benefit of repeating a term many times?",
+      "category": "direct",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "bm25-and-lexical-search.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q009",
+      "query": "What corpus statistics influence BM25's inverse document frequency?",
+      "category": "direct",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "bm25-and-lexical-search.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q010",
+      "query": "Why are raw BM25 scores not directly comparable to cosine similarity?",
+      "category": "direct",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "bm25-and-lexical-search.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q011",
+      "query": "What is the purpose of a metadata filter in retrieval?",
+      "category": "direct",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "metadata-filtering-and-access-control.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q012",
+      "query": "Why must authorization be checked independently of client-supplied filters?",
+      "category": "direct",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "metadata-filtering-and-access-control.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q013",
+      "query": "What does a cross-encoder receive when scoring a candidate?",
+      "category": "direct",
+      "split": "test",
+      "answerable": true,
+      "relevant_sources": [
+        "reranking-and-cross-encoders.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q014",
+      "query": "Why is a reranker normally applied to a limited candidate pool?",
+      "category": "direct",
+      "split": "test",
+      "answerable": true,
+      "relevant_sources": [
+        "reranking-and-cross-encoders.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q015",
+      "query": "What does idempotent ingestion mean?",
+      "category": "direct",
+      "split": "test",
+      "answerable": true,
+      "relevant_sources": [
+        "ingestion-reliability-and-updates.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q016",
+      "query": "What should an ingestion job report when some files fail?",
+      "category": "direct",
+      "split": "test",
+      "answerable": true,
+      "relevant_sources": [
+        "ingestion-reliability-and-updates.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q017",
+      "query": "Why should a context builder retain passage metadata?",
+      "category": "direct",
+      "split": "test",
+      "answerable": true,
+      "relevant_sources": [
+        "context-assembly-and-citations.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q018",
+      "query": "What should citation validation check about a cited passage?",
+      "category": "direct",
+      "split": "test",
+      "answerable": true,
+      "relevant_sources": [
+        "context-assembly-and-citations.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q019",
+      "query": "What operational signals should be monitored separately from retrieval quality?",
+      "category": "direct",
+      "split": "test",
+      "answerable": true,
+      "relevant_sources": [
+        "production-monitoring-and-evaluation.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q020",
+      "query": "Why should an evaluation set be versioned?",
+      "category": "direct",
+      "split": "test",
+      "answerable": true,
+      "relevant_sources": [
+        "evaluation-methods.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q021",
+      "query": "Before anyone asks a question, which RAG work can already have been completed?",
+      "category": "paraphrase",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "rag-architecture.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q022",
+      "query": "Why is it inefficient to regenerate every source vector for every incoming request?",
+      "category": "paraphrase",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "rag-architecture.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q023",
+      "query": "What lets a retrieved passage be traced back to its original location?",
+      "category": "paraphrase",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "rag-architecture.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q024",
+      "query": "If two texts discuss related ideas but use different wording, what representation can help match them?",
+      "category": "paraphrase",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "embeddings-and-retrieval.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q025",
+      "query": "Why might a nearest-neighbor system return a smaller distance for a better match?",
+      "category": "paraphrase",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "embeddings-and-retrieval.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q026",
+      "query": "What trade-off appears when passages are made much longer?",
+      "category": "paraphrase",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "chunking-strategies.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q027",
+      "query": "How can a fact close to a split boundary remain available to retrieval?",
+      "category": "paraphrase",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "chunking-strategies.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q028",
+      "query": "Why might a keyword search miss a question that uses a synonym?",
+      "category": "paraphrase",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "bm25-and-lexical-search.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q029",
+      "query": "What makes an uncommon technical word more discriminative in a lexical ranking?",
+      "category": "paraphrase",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "bm25-and-lexical-search.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q030",
+      "query": "Why should a fused retriever combine ranked lists rather than add unrelated raw scores?",
+      "category": "paraphrase",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "bm25-and-lexical-search.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q031",
+      "query": "How can a hybrid system accidentally expose records outside a user's permitted scope?",
+      "category": "paraphrase",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "metadata-filtering-and-access-control.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q032",
+      "query": "What must happen when a document's access permission is changed?",
+      "category": "paraphrase",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "metadata-filtering-and-access-control.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q033",
+      "query": "Why can a second-stage ranker improve ordering after a fast initial search?",
+      "category": "paraphrase",
+      "split": "test",
+      "answerable": true,
+      "relevant_sources": [
+        "reranking-and-cross-encoders.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q034",
+      "query": "Can a reranker find evidence that was never included among the initial candidates?",
+      "category": "paraphrase",
+      "split": "test",
+      "answerable": true,
+      "relevant_sources": [
+        "reranking-and-cross-encoders.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q035",
+      "query": "How should an index behave if the same unchanged file is ingested repeatedly?",
+      "category": "paraphrase",
+      "split": "test",
+      "answerable": true,
+      "relevant_sources": [
+        "ingestion-reliability-and-updates.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q036",
+      "query": "What can go wrong if removed documents remain in a secondary search index?",
+      "category": "paraphrase",
+      "split": "test",
+      "answerable": true,
+      "relevant_sources": [
+        "ingestion-reliability-and-updates.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q037",
+      "query": "Why is returning a source list not enough to prove that each generated claim is supported?",
+      "category": "paraphrase",
+      "split": "test",
+      "answerable": true,
+      "relevant_sources": [
+        "context-assembly-and-citations.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q038",
+      "query": "How can truncating the prompt accidentally remove essential evidence?",
+      "category": "paraphrase",
+      "split": "test",
+      "answerable": true,
+      "relevant_sources": [
+        "context-assembly-and-citations.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q039",
+      "query": "Why can engagement metrics be misleading as a measure of retrieval relevance?",
+      "category": "paraphrase",
+      "split": "test",
+      "answerable": true,
+      "relevant_sources": [
+        "production-monitoring-and-evaluation.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q040",
+      "query": "What is the danger of treating a strong score on a small hand-built benchmark as universal proof?",
+      "category": "paraphrase",
+      "split": "test",
+      "answerable": true,
+      "relevant_sources": [
+        "evaluation-methods.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q041",
+      "query": "In BM25, what do the parameters k1 and b control?",
+      "category": "exact_term",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "bm25-and-lexical-search.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q042",
+      "query": "What does the acronym BM25 name in the corpus?",
+      "category": "exact_term",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "bm25-and-lexical-search.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q043",
+      "query": "Which fusion method assigns contributions according to each result's rank?",
+      "category": "exact_term",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "embeddings-and-retrieval.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q044",
+      "query": "What does RRF stand for?",
+      "category": "exact_term",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "embeddings-and-retrieval.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q045",
+      "query": "Which retrieval parameter determines how many passages are returned?",
+      "category": "exact_term",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "embeddings-and-retrieval.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q046",
+      "query": "What is the term for repeating text between neighboring chunks?",
+      "category": "exact_term",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "chunking-strategies.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q047",
+      "query": "What is the name for splitting text into independently retrievable passages?",
+      "category": "exact_term",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "chunking-strategies.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q048",
+      "query": "Which similarity measure compares the angle between two non-zero vectors?",
+      "category": "exact_term",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "embeddings-and-retrieval.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q049",
+      "query": "What is the relationship between cosine distance and cosine similarity in the described convention?",
+      "category": "exact_term",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "embeddings-and-retrieval.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q050",
+      "query": "What does ANN stand for in vector search?",
+      "category": "exact_term",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "vector-databases-and-indexes.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q051",
+      "query": "What is the full term for ANN search?",
+      "category": "exact_term",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "vector-databases-and-indexes.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q052",
+      "query": "What is a cross-encoder used for in a two-stage retrieval design?",
+      "category": "exact_term",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "reranking-and-cross-encoders.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q053",
+      "query": "What does MRR summarize across a set of queries?",
+      "category": "exact_term",
+      "split": "test",
+      "answerable": true,
+      "relevant_sources": [
+        "evaluation-methods.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q054",
+      "query": "What does Hit Rate@k record?",
+      "category": "exact_term",
+      "split": "test",
+      "answerable": true,
+      "relevant_sources": [
+        "evaluation-methods.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q055",
+      "query": "Which metric measures the fraction of all labeled relevant items found in the top k?",
+      "category": "exact_term",
+      "split": "test",
+      "answerable": true,
+      "relevant_sources": [
+        "evaluation-methods.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q056",
+      "query": "What is the term for processing the same source repeatedly without creating duplicate logical records?",
+      "category": "exact_term",
+      "split": "test",
+      "answerable": true,
+      "relevant_sources": [
+        "ingestion-reliability-and-updates.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q057",
+      "query": "What is the name for restricting retrieval using structured record attributes?",
+      "category": "exact_term",
+      "split": "test",
+      "answerable": true,
+      "relevant_sources": [
+        "metadata-filtering-and-access-control.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q058",
+      "query": "What term describes a question that needs evidence from at least two documents?",
+      "category": "exact_term",
+      "split": "test",
+      "answerable": true,
+      "relevant_sources": [
+        "multi-hop-and-complex-questions.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q059",
+      "query": "What is the name for generating alternative phrasings of the original search request?",
+      "category": "exact_term",
+      "split": "test",
+      "answerable": true,
+      "relevant_sources": [
+        "query-understanding-and-rewriting.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q060",
+      "query": "What is prompt injection in the context of retrieved documents?",
+      "category": "exact_term",
+      "split": "test",
+      "answerable": true,
+      "relevant_sources": [
+        "retrieval-security-and-prompt-injection.md"
+      ],
+      "required_sources": []
+    },
+    {
+      "id": "q061",
+      "query": "Why can a rare term improve a BM25 ranking, and how can a metadata constraint further narrow the set of eligible documents?",
+      "category": "multi_hop",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "metadata-filtering-and-access-control.md",
+        "bm25-and-lexical-search.md"
+      ],
+      "required_sources": [
+        "metadata-filtering-and-access-control.md",
+        "bm25-and-lexical-search.md"
+      ]
+    },
+    {
+      "id": "q062",
+      "query": "How do chunk overlap and source-level deduplication address different problems in retrieval?",
+      "category": "multi_hop",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "chunking-strategies.md",
+        "context-assembly-and-citations.md"
+      ],
+      "required_sources": [
+        "chunking-strategies.md",
+        "context-assembly-and-citations.md"
+      ]
+    },
+    {
+      "id": "q063",
+      "query": "Why should an embedding-model change trigger re-indexing, and what evaluation settings should remain fixed when comparing the new model?",
+      "category": "multi_hop",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "vector-databases-and-indexes.md",
+        "evaluation-methods.md"
+      ],
+      "required_sources": [
+        "vector-databases-and-indexes.md",
+        "evaluation-methods.md"
+      ]
+    },
+    {
+      "id": "q064",
+      "query": "How can a reranker improve precision, and why does its candidate pool still limit the evidence it can recover?",
+      "category": "multi_hop",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "reranking-and-cross-encoders.md",
+        "embeddings-and-retrieval.md"
+      ],
+      "required_sources": [
+        "reranking-and-cross-encoders.md",
+        "embeddings-and-retrieval.md"
+      ]
+    },
+    {
+      "id": "q065",
+      "query": "Why is a retrieved passage not allowed to override system instructions, and what prompt-level defense can help keep it as reference data?",
+      "category": "multi_hop",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "rag-architecture.md",
+        "retrieval-security-and-prompt-injection.md"
+      ],
+      "required_sources": [
+        "rag-architecture.md",
+        "retrieval-security-and-prompt-injection.md"
+      ]
+    },
+    {
+      "id": "q066",
+      "query": "What should be checked when an answer is wrong even though the relevant evidence was retrieved?",
+      "category": "multi_hop",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "rag-architecture.md",
+        "context-assembly-and-citations.md"
+      ],
+      "required_sources": [
+        "rag-architecture.md",
+        "context-assembly-and-citations.md"
+      ]
+    },
+    {
+      "id": "q067",
+      "query": "How should a benchmark evaluate a multi-hop question differently from a question requiring only one source?",
+      "category": "multi_hop",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "multi-hop-and-complex-questions.md",
+        "evaluation-methods.md"
+      ],
+      "required_sources": [
+        "multi-hop-and-complex-questions.md",
+        "evaluation-methods.md"
+      ]
+    },
+    {
+      "id": "q068",
+      "query": "Why should document updates remove stale entries from both vector and lexical indexes?",
+      "category": "multi_hop",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "ingestion-reliability-and-updates.md",
+        "metadata-filtering-and-access-control.md"
+      ],
+      "required_sources": [
+        "ingestion-reliability-and-updates.md",
+        "metadata-filtering-and-access-control.md"
+      ]
+    },
+    {
+      "id": "q069",
+      "query": "How can a query rewrite increase recall while also introducing a new risk, and what should be retained for auditing?",
+      "category": "multi_hop",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "query-understanding-and-rewriting.md",
+        "production-monitoring-and-evaluation.md"
+      ],
+      "required_sources": [
+        "query-understanding-and-rewriting.md",
+        "production-monitoring-and-evaluation.md"
+      ]
+    },
+    {
+      "id": "q070",
+      "query": "Why can a larger top-k improve evidence coverage but make context construction less efficient?",
+      "category": "multi_hop",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "embeddings-and-retrieval.md",
+        "context-assembly-and-citations.md"
+      ],
+      "required_sources": [
+        "embeddings-and-retrieval.md",
+        "context-assembly-and-citations.md"
+      ]
+    },
+    {
+      "id": "q071",
+      "query": "How do source metadata and stable identifiers support both citations and reliable document deletion?",
+      "category": "multi_hop",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "rag-architecture.md",
+        "ingestion-reliability-and-updates.md"
+      ],
+      "required_sources": [
+        "rag-architecture.md",
+        "ingestion-reliability-and-updates.md"
+      ]
+    },
+    {
+      "id": "q072",
+      "query": "Why should retrieval relevance, answer grounding, and operational reliability be measured as separate evaluation layers?",
+      "category": "multi_hop",
+      "split": "dev",
+      "answerable": true,
+      "relevant_sources": [
+        "rag-architecture.md",
+        "production-monitoring-and-evaluation.md"
+      ],
+      "required_sources": [
+        "rag-architecture.md",
+        "production-monitoring-and-evaluation.md"
+      ]
+    },
+    {
+      "id": "q073",
+      "query": "How can an ANN index trade retrieval quality for speed, and which operational factors influence the index choice?",
+      "category": "multi_hop",
+      "split": "test",
+      "answerable": true,
+      "relevant_sources": [
+        "vector-databases-and-indexes.md",
+        "production-monitoring-and-evaluation.md"
+      ],
+      "required_sources": [
+        "vector-databases-and-indexes.md",
+        "production-monitoring-and-evaluation.md"
+      ]
+    },
+    {
+      "id": "q074",
+      "query": "Why is a high MRR not enough to establish that all evidence for a complex question was retrieved?",
+      "category": "multi_hop",
+      "split": "test",
+      "answerable": true,
+      "relevant_sources": [
+        "evaluation-methods.md",
+        "multi-hop-and-complex-questions.md"
+      ],
+      "required_sources": [
+        "evaluation-methods.md",
+        "multi-hop-and-complex-questions.md"
+      ]
+    },
+    {
+      "id": "q075",
+      "query": "How should a system defend against unauthorized content appearing in generated context as well as in retrieval results?",
+      "category": "multi_hop",
+      "split": "test",
+      "answerable": true,
+      "relevant_sources": [
+        "metadata-filtering-and-access-control.md",
+        "retrieval-security-and-prompt-injection.md"
+      ],
+      "required_sources": [
+        "metadata-filtering-and-access-control.md",
+        "retrieval-security-and-prompt-injection.md"
+      ]
+    },
+    {
+      "id": "q076",
+      "query": "Why should the benchmark hold the candidate pool constant when comparing first-stage retrieval with reranking?",
+      "category": "multi_hop",
+      "split": "test",
+      "answerable": true,
+      "relevant_sources": [
+        "reranking-and-cross-encoders.md",
+        "evaluation-methods.md"
+      ],
+      "required_sources": [
+        "reranking-and-cross-encoders.md",
+        "evaluation-methods.md"
+      ]
+    },
+    {
+      "id": "q077",
+      "query": "How can truncation and poor passage ordering cause a supported answer to become unsupported in the final prompt?",
+      "category": "multi_hop",
+      "split": "test",
+      "answerable": true,
+      "relevant_sources": [
+        "context-assembly-and-citations.md",
+        "rag-architecture.md"
+      ],
+      "required_sources": [
+        "context-assembly-and-citations.md",
+        "rag-architecture.md"
+      ]
+    },
+    {
+      "id": "q078",
+      "query": "Why should query normalization preserve identifiers and negation while still standardizing superficial variations?",
+      "category": "multi_hop",
+      "split": "test",
+      "answerable": true,
+      "relevant_sources": [
+        "query-understanding-and-rewriting.md",
+        "bm25-and-lexical-search.md"
+      ],
+      "required_sources": [
+        "query-understanding-and-rewriting.md",
+        "bm25-and-lexical-search.md"
+      ]
+    },
+    {
+      "id": "q079",
+      "query": "What should be measured after changing chunk size, and why must the query set and relevance policy stay unchanged?",
+      "category": "multi_hop",
+      "split": "test",
+      "answerable": true,
+      "relevant_sources": [
+        "chunking-strategies.md",
+        "evaluation-methods.md"
+      ],
+      "required_sources": [
+        "chunking-strategies.md",
+        "evaluation-methods.md"
+      ]
+    },
+    {
+      "id": "q080",
+      "query": "How can an ingestion process appear successful while leaving an incomplete index, and what operational checks can reveal the problem?",
+      "category": "multi_hop",
+      "split": "test",
+      "answerable": true,
+      "relevant_sources": [
+        "ingestion-reliability-and-updates.md",
+        "production-monitoring-and-evaluation.md"
+      ],
+      "required_sources": [
+        "ingestion-reliability-and-updates.md",
+        "production-monitoring-and-evaluation.md"
+      ]
+    },
+    {
+      "id": "q081",
+      "query": "Which exact version of the Python package does the corpus recommend pinning for production deployments?",
+      "category": "unanswerable",
+      "split": "dev",
+      "answerable": false,
+      "relevant_sources": [],
+      "required_sources": []
+    },
+    {
+      "id": "q082",
+      "query": "What numerical value of k1 did the authors determine to be optimal for every corpus?",
+      "category": "unanswerable",
+      "split": "dev",
+      "answerable": false,
+      "relevant_sources": [],
+      "required_sources": []
+    },
+    {
+      "id": "q083",
+      "query": "Which commercial embedding API provider is officially endorsed by the corpus?",
+      "category": "unanswerable",
+      "split": "dev",
+      "answerable": false,
+      "relevant_sources": [],
+      "required_sources": []
+    },
+    {
+      "id": "q084",
+      "query": "What is the measured p95 latency, in milliseconds, of the example vector database?",
+      "category": "unanswerable",
+      "split": "dev",
+      "answerable": false,
+      "relevant_sources": [],
+      "required_sources": []
+    },
+    {
+      "id": "q085",
+      "query": "How many GPU gigabytes are required to run the recommended cross-encoder?",
+      "category": "unanswerable",
+      "split": "dev",
+      "answerable": false,
+      "relevant_sources": [],
+      "required_sources": []
+    },
+    {
+      "id": "q086",
+      "query": "Which cloud region should host the production Chroma deployment?",
+      "category": "unanswerable",
+      "split": "dev",
+      "answerable": false,
+      "relevant_sources": [],
+      "required_sources": []
+    },
+    {
+      "id": "q087",
+      "query": "What exact SQL schema is prescribed for storing user permissions?",
+      "category": "unanswerable",
+      "split": "dev",
+      "answerable": false,
+      "relevant_sources": [],
+      "required_sources": []
+    },
+    {
+      "id": "q088",
+      "query": "Which OAuth grant type is required for tenant authorization?",
+      "category": "unanswerable",
+      "split": "dev",
+      "answerable": false,
+      "relevant_sources": [],
+      "required_sources": []
+    },
+    {
+      "id": "q089",
+      "query": "What is the monthly infrastructure budget for the described RAG architecture?",
+      "category": "unanswerable",
+      "split": "dev",
+      "answerable": false,
+      "relevant_sources": [],
+      "required_sources": []
+    },
+    {
+      "id": "q090",
+      "query": "How many concurrent users did the benchmark system support in its load test?",
+      "category": "unanswerable",
+      "split": "dev",
+      "answerable": false,
+      "relevant_sources": [],
+      "required_sources": []
+    },
+    {
+      "id": "q091",
+      "query": "Which named commercial vector database achieved the highest score in the corpus experiments?",
+      "category": "unanswerable",
+      "split": "dev",
+      "answerable": false,
+      "relevant_sources": [],
+      "required_sources": []
+    },
+    {
+      "id": "q092",
+      "query": "What exact numerical values of k1 and b were used in a specific BM25 experiment reported by the corpus authors?",
+      "category": "unanswerable",
+      "split": "dev",
+      "answerable": false,
+      "relevant_sources": [],
+      "required_sources": []
+    },
+    {
+      "id": "q093",
+      "query": "What exact token-count chunk size did the corpus authors use in a measured comparison of chunk-size settings?",
+      "category": "unanswerable",
+      "split": "test",
+      "answerable": false,
+      "relevant_sources": [],
+      "required_sources": []
+    },
+    {
+      "id": "q094",
+      "query": "What numerical threshold should always be used to decide whether a generated answer is sufficiently grounded?",
+      "category": "unanswerable",
+      "split": "test",
+      "answerable": false,
+      "relevant_sources": [],
+      "required_sources": []
+    },
+    {
+      "id": "q095",
+      "query": "Which proprietary reranking model and checkpoint are required by the described system?",
+      "category": "unanswerable",
+      "split": "test",
+      "answerable": false,
+      "relevant_sources": [],
+      "required_sources": []
+    },
+    {
+      "id": "q096",
+      "query": "What exact retention period, in days, must every application use for deleted document embeddings?",
+      "category": "unanswerable",
+      "split": "test",
+      "answerable": false,
+      "relevant_sources": [],
+      "required_sources": []
+    },
+    {
+      "id": "q097",
+      "query": "Which monitoring vendor is specified for collecting retrieval traces?",
+      "category": "unanswerable",
+      "split": "test",
+      "answerable": false,
+      "relevant_sources": [],
+      "required_sources": []
+    },
+    {
+      "id": "q098",
+      "query": "What was the exact percentage improvement in production conversion rate after adding hybrid retrieval?",
+      "category": "unanswerable",
+      "split": "test",
+      "answerable": false,
+      "relevant_sources": [],
+      "required_sources": []
+    },
+    {
+      "id": "q099",
+      "query": "Which cryptographic algorithm and key length does the corpus mandate for encrypting vector records?",
+      "category": "unanswerable",
+      "split": "test",
+      "answerable": false,
+      "relevant_sources": [],
+      "required_sources": []
+    },
+    {
+      "id": "q100",
+      "query": "What is the official maximum number of documents supported by the described architecture?",
+      "category": "unanswerable",
+      "split": "test",
+      "answerable": false,
+      "relevant_sources": [],
+      "required_sources": []
+    }
+  ]
+}

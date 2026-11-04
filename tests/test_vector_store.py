@@ -78,3 +78,21 @@ def test_get_all_returns_persisted_chunks():
 def test_get_all_handles_empty_collection():
     store = make_store()
     assert store.get_all() == []
+
+
+
+def test_clear_deletes_every_persisted_record():
+    store = ChromaVectorStore.__new__(ChromaVectorStore)
+    store.collection = FakeCollection(records=[
+        {"id": "c1", "text": "First", "metadata": {"source": "a.md"}},
+        {"id": "c2", "text": "Second", "metadata": {"source": "b.md"}},
+    ])
+
+    assert store.clear() == 2
+    assert store.collection.deleted == [{"ids": ["c1", "c2"]}]
+
+
+def test_clear_handles_an_empty_collection():
+    store = make_store()
+    assert store.clear() == 0
+    assert store.collection.deleted == []

@@ -1,4 +1,6 @@
 """ChromaDB-backed persistent vector storage."""
+
+
 class ChromaVectorStore:
     def __init__(self, path: str, collection_name: str):
         try:
@@ -9,6 +11,13 @@ class ChromaVectorStore:
         self.collection = self.client.get_or_create_collection(
             name=collection_name, metadata={"hnsw:space": "cosine"}
         )
+
+    def clear(self) -> int:
+        """Delete all records in this collection and return the number removed."""
+        ids = [item["id"] for item in self.get_all()]
+        if ids:
+            self.collection.delete(ids=ids)
+        return len(ids)
 
     def delete_sources(self, sources: list[str]) -> None:
         """Remove previously indexed records for the supplied source paths."""

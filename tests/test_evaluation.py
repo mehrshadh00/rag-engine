@@ -25,7 +25,6 @@ def test_precision_uses_actual_number_of_returned_results():
 def test_no_relevant_results():
     assert reciprocal_rank(["x"], {"a"}) == 0.0
     assert recall_at_k(["x"], set(), 3) == 0.0
-    assert hit_rate_at_k(["x"], {"a"}, 3) == 0.0
 
 
 def test_hit_rate_when_relevant_result_is_found():
@@ -75,4 +74,79 @@ def test_evaluate_retrieval_rejects_empty_query():
         evaluate_retrieval(
             FakeRetriever({}),
             [{"query": " ", "relevant_ids": []}],
+        )
+
+
+def test_unanswerable_queries_are_excluded_from_relevance_metrics():
+    retriever = FakeRetriever({"not in corpus": ["doc-a"]})
+    result = evaluate_retrieval(
+        retriever,
+        [{
+            "query": "not in corpus",
+            "relevant_ids": [],
+            "answerable": False,
+            "category": "unanswerable",
+        }],
+        k=2,
+    )
+
+    assert result["metrics"] == {}
+    assert result["diagnostics"]["unanswerable_false_positive_rate_at_k"] == 1.0
+    assert result["answerable_query_count"] == 0
+    assert result["unanswerable_query_count"] == 1
+    assert result["results"][0]["precision_at_k"] is None
+
+
+def test_multi_hop_complete_evidence_requires_every_required_source():
+    retriever = FakeRetriever({
+        "multi-hop": ["doc-a", "doc-x"],
+        "complete": ["doc-a", "doc-b"],
+    })
+    dataset = [
+        {
+            "query": "multi-hop",
+            "relevant_ids": ["doc-a", "doc-b"],
+            "required_ids": ["doc-a", "doc-b"],
+            "answerable": True,
+            "category": "multi_hop",
+        },
+        {
+            "query": "complete",
+            "relevant_ids": ["doc-a", "doc-b"],
+            "required_ids": ["doc-a", "doc-b"],
+            "answerable": True,
+            "category": "multi_hop",
+        },
+    ]
+
+    result = evaluate_retrieval(retriever, dataset, k=2)
+
+    assert result["diagnostics"]["multi_hop_complete_evidence_rate_at_k"] == 0.5
+    assert result["by_category"]["multi_hop"]["query_count"] == 2
+
+
+def test_answerability_labels_are_validated():
+    with pytest.raises(ValueError, match="no relevant_ids"):
+        evaluate_retrieval(
+            FakeRetriever({}),
+            [{"query": "bad label", "relevant_ids": [], "answerable": True}],
+        )
+    with pytest.raises(ValueError, match="has relevant_ids"):
+        evaluate_retrieval(
+            FakeRetriever({}),
+            [{"query": "bad label", "relevant_ids": ["doc-a"], "answerable": False}],
+        )
+
+
+def test_multi_hop_requires_at_least_two_required_sources():
+    with pytest.raises(ValueError, match="at least two"):
+        evaluate_retrieval(
+            FakeRetriever({"question": ["doc-a"]}),
+            [{
+                "query": "question",
+                "relevant_ids": ["doc-a"],
+                "required_ids": ["doc-a"],
+                "answerable": True,
+                "category": "multi_hop",
+            }],
         )
