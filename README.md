@@ -120,7 +120,7 @@ For the reranked mode, the first-stage dense and sparse retrievers each use `HYB
 
 ### Benchmark results
 
-All results below use **K=3 unique source documents**. The corpus contained 43 chunks at evaluation time. The configured first-stage candidate limit was 50, so each baseline retriever returned up to the 43 available chunks; the reranked path passed at most 20 fused candidates to the Cross-Encoder.
+All results below use **K=3 unique source documents**. Precision@K, Recall@K, MRR, and Hit Rate@K are macro-averaged over **answerable queries only** (48 Dev queries and 32 Test queries); unanswerable queries are reported separately through the false-positive diagnostic. Multi-hop complete-evidence rate is averaged over the multi-hop subset (12 Dev and 8 Test queries). The corpus contained 43 chunks at evaluation time. The configured first-stage candidate limit was 50, so each baseline retriever returned up to the 43 available chunks; the reranked path passed at most 20 fused candidates to the Cross-Encoder.
 
 **Development split — 60 queries**
 
