@@ -124,6 +124,7 @@ def evaluate_retrieval(
             "category": category,
             "answerable": answerable,
             "retrieved_ids": retrieved_ids,
+            "top_rerank_score": matches[0].get("rerank_score") if matches else None,
             "relevant_ids": sorted(relevant),
             "required_ids": sorted(required),
             "complete_evidence_at_k": complete if required else None,
