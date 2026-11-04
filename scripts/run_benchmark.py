@@ -1,4 +1,4 @@
-"""Compare dense, BM25, and hybrid retrieval on a versioned dataset."""
+"""Compare dense, BM25, hybrid, and reranked retrieval on a versioned dataset."""
 from __future__ import annotations
 
 import argparse
@@ -13,6 +13,7 @@ from rag_engine.config import settings
 from rag_engine.evaluation import evaluate_retrieval
 from rag_engine.hybrid import HybridRetriever
 from rag_engine.pipeline import RAGPipeline
+from rag_engine.reranking import CrossEncoderReranker
 from rag_engine.retrieval import Retriever
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -37,14 +38,12 @@ def validate_dataset(dataset: dict, available_sources: set[str]) -> None:
         if not query_id or query_id in seen_ids:
             raise ValueError(f"Missing or duplicate query id at index {index}: {query_id!r}")
         seen_ids.add(query_id)
-
         if not str(item.get("query", "")).strip():
             raise ValueError(f"Empty query text for {query_id}")
         if item.get("split") not in allowed_splits:
             raise ValueError(f"Invalid split for {query_id}: {item.get('split')!r}")
         if not isinstance(item.get("answerable"), bool):
             raise ValueError(f"Missing boolean answerable label for {query_id}")
-
         relevant = set(item.get("relevant_sources", []))
         required = set(item.get("required_sources", []))
         unknown = (relevant | required) - available_sources
@@ -60,35 +59,30 @@ def validate_dataset(dataset: dict, available_sources: set[str]) -> None:
             raise ValueError(f"Multi-hop query needs at least two required sources: {query_id}")
 
 
-def evaluate_mode(retriever, cases: list[dict], k: int, candidate_k: int) -> dict:
-    adapter = DocumentLevelRetriever(retriever, candidate_k=candidate_k)
+def evaluate_mode(
+    retriever, cases: list[dict], k: int, candidate_k: int, reranker=None
+) -> dict:
+    adapter = DocumentLevelRetriever(
+        retriever, candidate_k=candidate_k, reranker=reranker
+    )
     return evaluate_retrieval(adapter, cases, k=k)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Compare dense, BM25, and hybrid document retrieval"
+        description="Compare dense, BM25, hybrid, and cross-encoder reranked retrieval"
     )
+    parser.add_argument("--k", type=int, default=3,
+                        help="Number of unique source documents in the final ranking")
     parser.add_argument(
-        "--k", type=int, default=3,
-        help="Number of unique source documents in the final ranking (default: 3)",
+        "--mode",
+        choices=("all", "dense", "bm25", "hybrid", "hybrid-reranked"),
+        default="all",
+        help="Retrieval method to evaluate; all includes reranked hybrid",
     )
-    parser.add_argument(
-        "--mode", choices=("all", "dense", "bm25", "hybrid"), default="all",
-        help="Retrieval method to evaluate (default: all)",
-    )
-    parser.add_argument(
-        "--dataset", type=Path, default=DEFAULT_DATASET_PATH,
-        help="Path to a versioned benchmark JSON dataset",
-    )
-    parser.add_argument(
-        "--corpus-dir", type=Path, default=DEFAULT_CORPUS_DIR,
-        help="Directory containing the benchmark source documents",
-    )
-    parser.add_argument(
-        "--split", choices=("dev", "test", "all"), default="dev",
-        help="Dataset split; defaults to dev to protect the held-out test set",
-    )
+    parser.add_argument("--dataset", type=Path, default=DEFAULT_DATASET_PATH)
+    parser.add_argument("--corpus-dir", type=Path, default=DEFAULT_CORPUS_DIR)
+    parser.add_argument("--split", choices=("dev", "test", "all"), default="dev")
     args = parser.parse_args()
     if args.k <= 0:
         parser.error("--k must be positive")
@@ -118,7 +112,6 @@ def main() -> None:
     ]
     if not selected:
         parser.error(f"No queries found for split: {args.split}")
-
     cases = [
         {
             "query": item["query"],
@@ -138,8 +131,6 @@ def main() -> None:
         chroma_collection=collection_name,
     )
     pipeline = RAGPipeline(config=benchmark_config)
-    # Clear this dataset's collection so removed/changed corpus files cannot
-    # leave stale records that contaminate the benchmark.
     pipeline.vector_store.clear()
     ingestion = pipeline.ingest(str(corpus_dir))
     if ingestion["chunks"] <= 0:
@@ -149,20 +140,29 @@ def main() -> None:
     dense = Retriever(pipeline.embedder, pipeline.vector_store)
     bm25 = pipeline.sparse_retriever
     hybrid = HybridRetriever(
-        dense,
-        bm25,
-        candidate_k=candidate_k,
+        dense, bm25, candidate_k=candidate_k,
         dense_weight=benchmark_config.dense_weight,
         sparse_weight=benchmark_config.sparse_weight,
         rrf_k=benchmark_config.rrf_k,
     )
-
     available_modes = {"dense": dense, "bm25": bm25, "hybrid": hybrid}
-    selected_modes = list(available_modes) if args.mode == "all" else [args.mode]
-    reports = {
-        mode: evaluate_mode(available_modes[mode], cases, args.k, candidate_k)
-        for mode in selected_modes
-    }
+    selected_modes = (
+        ["dense", "bm25", "hybrid", "hybrid-reranked"]
+        if args.mode == "all" else [args.mode]
+    )
+
+    reranker = None
+    if "hybrid-reranked" in selected_modes:
+        # Model loading is deferred unless the reranked benchmark is requested.
+        reranker = CrossEncoderReranker(benchmark_config.reranker_model)
+
+    reports = {}
+    for mode in selected_modes:
+        reports[mode] = evaluate_mode(
+            hybrid if mode == "hybrid-reranked" else available_modes[mode],
+            cases, args.k, candidate_k,
+            reranker=reranker if mode == "hybrid-reranked" else None,
+        )
 
     for report in reports.values():
         for source_case, result in zip(selected, report["results"]):
@@ -177,6 +177,7 @@ def main() -> None:
         "split": args.split,
         "evaluation_level": dataset.get("evaluation_level", "document"),
         "embedding_model": benchmark_config.embedding_model,
+        "reranker_model": benchmark_config.reranker_model if reranker else None,
         "retrieval_modes": selected_modes,
         "k": args.k,
         "corpus_documents": len(corpus_files),
