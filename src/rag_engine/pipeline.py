@@ -1,4 +1,5 @@
 """End-to-end ingestion and question-answering orchestration."""
+from .answerability import is_answerable
 from .bm25 import BM25Retriever
 from .chunking import chunk_documents
 from .config import settings
@@ -113,9 +114,44 @@ class RAGPipeline:
             return {
                 "answer": "I could not find relevant information in the indexed documents.",
                 "sources": [],
+                "answerable": False,
+                "abstained": True,
+                "abstention_reason": "no_retrieved_evidence",
+                "answerability": {"method": "empty_retrieval", "score": None, "threshold": None},
             }
+
+        answerability_enabled = getattr(self.config, "answerability_enabled", True)
+        answerability_threshold = getattr(self.config, "answerability_threshold", 0.0)
+        top_rerank_score = matches[0].get("rerank_score") if matches else None
+        if rerank_enabled and answerability_enabled:
+            if not is_answerable(top_rerank_score, answerability_threshold):
+                return {
+                    "answer": "I cannot answer this question confidently from the indexed documents.",
+                    "sources": [],
+                    "answerable": False,
+                    "abstained": True,
+                    "abstention_reason": "reranker_score_below_threshold",
+                    "answerability": {
+                        "method": "cross_encoder_threshold",
+                        "score": top_rerank_score,
+                        "threshold": answerability_threshold,
+                    },
+                }
         generator = self.generator
         if generator is None:
             generator = OpenAIAnswerGenerator(self.config.openai_api_key, self.config.openai_model)
         answer = generator.answer(question, context)
-        return {"answer": answer, "sources": sources}
+        return {
+            "answer": answer,
+            "sources": sources,
+            "answerable": True if rerank_enabled and answerability_enabled else None,
+            "abstained": False,
+            "abstention_reason": None,
+            "answerability": ({
+                "method": "cross_encoder_threshold",
+                "score": top_rerank_score,
+                "threshold": answerability_threshold,
+            } if rerank_enabled and answerability_enabled else {
+                "method": "not_evaluated", "score": None, "threshold": None
+            }),
+        }
