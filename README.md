@@ -10,8 +10,9 @@ A modular Retrieval-Augmented Generation (RAG) system for grounded question answ
 4. Stores vectors in a persistent ChromaDB collection.
 5. Combines dense semantic search and sparse BM25 search with Reciprocal Rank Fusion (RRF).
 6. Optionally reranks retrieved chunks with a Cross-Encoder before context assembly.
-7. Builds source-attributed context and generates answers with an OpenAI-compatible chat model.
-8. Exposes ingestion and question-answering endpoints through FastAPI.
+7. Applies an optional answerability gate to the top Cross-Encoder score and abstains when evidence is below a configurable threshold.
+8. Builds source-attributed context and generates answers with an OpenAI-compatible chat model.
+9. Exposes ingestion and question-answering endpoints through FastAPI.
 
 ## Architecture
 
@@ -82,6 +83,8 @@ See `.env.example`.
 | `RERANK_ENABLED` | Enable optional Cross-Encoder reranking (`false` by default) |
 | `RERANKER_MODEL` | Cross-Encoder model identifier |
 | `RERANK_CANDIDATE_K` | Candidate chunk pool reranked before selecting final top-k |
+| `ANSWERABILITY_ENABLED` | Enable score-threshold abstention when reranking is enabled (default `true`) |
+| `ANSWERABILITY_THRESHOLD` | Minimum top Cross-Encoder score required to generate an answer (default `0.0`) |
 | `OPENAI_API_KEY` / `OPENAI_MODEL` | Answer generation credentials and model |
 
 ## Retrieval and reranking
@@ -94,6 +97,12 @@ See `.env.example`.
 RRF adds `weight / (rrf_k + rank)` for each ranked list. Default weights are equal and `rrf_k=60`. The sparse index is rebuilt from the persistent Chroma collection at startup and refreshed after ingestion.
 
 Reranking is disabled by default. To enable it, set `RERANK_ENABLED=true`; the default model is `cross-encoder/ms-marco-MiniLM-L-6-v2`. Reranking can improve ordering but cannot recover relevant chunks absent from the candidate pool, and adds model latency.
+
+### Answerability and abstention
+
+When `RERANK_ENABLED=true` and `ANSWERABILITY_ENABLED=true`, the pipeline checks the highest Cross-Encoder score after reranking. If the score is below `ANSWERABILITY_THRESHOLD`, or no evidence is retrieved, the pipeline abstains and returns an explicit `abstained` flag, reason, and score metadata instead of calling the answer-generation model. Set `ANSWERABILITY_ENABLED=false` to disable this gate. The `/ask` response keeps the existing `answer` and `sources` fields and adds `answerable`, `abstained`, `abstention_reason`, and `answerability` metadata.
+
+The default threshold (`0.0`) is a starting point, **not a calibrated probability cutoff**. Cross-Encoder logits are model- and domain-dependent. Use the new answerability metrics in the development benchmark to select a threshold that balances false positives (answering unanswerable questions) against false negatives (abstaining on answerable questions); then freeze it before evaluating the held-out test split. This gate is a lightweight heuristic, not a guarantee of factual correctness.
 
 ## Evaluation and tests
 
@@ -148,7 +157,7 @@ On this dataset, Hybrid + Reranker achieved the highest value for every reported
 
 - These are results from one fixed corpus and one manually labeled dataset. They are useful for comparing implementations under the same conditions, not evidence of universal RAG performance or a statistically conclusive improvement across domains.
 - The test split contains 40 queries (8 per category); small sample sizes can make metric changes sensitive to individual examples.
-- The `unanswerable_false_positive_rate_at_k` was 1.00 for all four methods on both splits. This diagnostic means retrieval returned at least one document for every unanswerable query. It does **not** measure whether the answer-generation layer can abstain. A separate answerability / abstention mechanism and evaluation are still needed.
+- The `unanswerable_false_positive_rate_at_k` was 1.00 for all four retrieval methods on both splits. This measures whether retrieval returned any document, not whether the answer-generation pipeline can abstain. The optional Cross-Encoder threshold gate now provides a separate abstention decision; its `answerability` metrics are reported by the benchmark when the reranked mode is selected.
 - Reranking only reorders retrieved candidates. It cannot recover relevant chunks that first-stage retrieval did not return, and it adds inference latency.
 - The benchmark evaluates document retrieval, not answer factuality, citation correctness, latency, throughput, or end-to-end generation quality.
 
@@ -181,6 +190,7 @@ Each run clears its dataset-specific Chroma collection before ingestion. The ben
 ```text
 src/rag_engine/
   api.py
+  answerability.py
   benchmark.py
   bm25.py
   chunking.py
