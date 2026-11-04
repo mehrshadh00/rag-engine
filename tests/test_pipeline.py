@@ -130,3 +130,42 @@ def test_pipeline_applies_injected_reranker_before_building_answer():
     result = pipeline.ask("Which programming language is Python?")
 
     assert result["sources"][0]["rerank_score"] == 0.0
+
+
+
+class LowScoreReranker:
+    def rerank(self, query, documents, top_k=None):
+        return [{**documents[0], "rerank_score": -0.25}]
+
+
+def test_pipeline_abstains_when_reranker_score_is_below_threshold():
+    config = SimpleNamespace(
+        embedding_model="test-model",
+        chroma_path="unused",
+        chroma_collection="unused",
+        chunk_size=100,
+        chunk_overlap=10,
+        top_k=1,
+        retrieval_mode="dense",
+        rerank_enabled=True,
+        rerank_candidate_k=3,
+        answerability_enabled=True,
+        answerability_threshold=0.0,
+        openai_api_key=None,
+        openai_model="test-model",
+    )
+    pipeline = RAGPipeline(
+        config=config,
+        embedder=EmptyEmbedder(),
+        vector_store=PopulatedVectorStore(),
+        generator=StaticGenerator(),
+        reranker=LowScoreReranker(),
+    )
+
+    result = pipeline.ask("What is in these documents?")
+
+    assert result["abstained"] is True
+    assert result["answerable"] is False
+    assert result["sources"] == []
+    assert result["abstention_reason"] == "reranker_score_below_threshold"
+    assert result["answerability"]["score"] == -0.25
