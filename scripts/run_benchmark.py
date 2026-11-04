@@ -8,6 +8,7 @@ from collections import Counter
 from dataclasses import replace
 from pathlib import Path
 
+from rag_engine.answerability import evaluate_answerability
 from rag_engine.benchmark import DocumentLevelRetriever
 from rag_engine.config import settings
 from rag_engine.evaluation import evaluate_retrieval
@@ -206,6 +207,18 @@ def main() -> None:
         "category_counts": dict(Counter(item["category"] for item in selected)),
         "metrics": {mode: report["metrics"] for mode, report in reports.items()},
         "diagnostics": {mode: report["diagnostics"] for mode, report in reports.items()},
+        "answerability": ({
+            "method": "cross_encoder_threshold",
+            "enabled": benchmark_config.answerability_enabled,
+            "threshold": benchmark_config.answerability_threshold,
+            "metrics": evaluate_answerability(
+                [
+                    {"answerable": case["answerable"], "score": result.get("top_rerank_score")}
+                    for case, result in zip(selected, reports["hybrid-reranked"]["results"])
+                ],
+                threshold=benchmark_config.answerability_threshold,
+            ) if benchmark_config.answerability_enabled and "hybrid-reranked" in reports else None,
+        }),
         "by_category": {mode: report["by_category"] for mode, report in reports.items()},
         "results": {mode: report["results"] for mode, report in reports.items()},
     }
