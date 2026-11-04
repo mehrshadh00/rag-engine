@@ -50,8 +50,12 @@ class RAGPipeline:
             raise ValueError("top_k must be positive")
         result_count = top_k or self.config.top_k
         dense_retriever = Retriever(self.embedder, self.vector_store)
-        if getattr(self.config, "retrieval_mode", "hybrid") == "dense":
+        mode = getattr(self.config, "retrieval_mode", "hybrid")
+        if mode == "dense":
             retriever = dense_retriever
+            matches = retriever.retrieve(question, top_k=result_count)
+        elif mode == "bm25":
+            retriever = self.sparse_retriever
             matches = retriever.retrieve(question, top_k=result_count)
         else:
             retriever = HybridRetriever(
