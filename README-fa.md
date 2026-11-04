@@ -91,7 +91,7 @@ Reranker فقط ترتیب کاندیداهای بازیابی‌شده را ت�
 
 وقتی `RERANK_ENABLED=true` و `ANSWERABILITY_ENABLED=true` باشند، Pipeline بالاترین امتیاز Cross-Encoder را پس از رتبه‌بندی بررسی می‌کند. اگر امتیاز از `ANSWERABILITY_THRESHOLD` کمتر باشد یا هیچ شواهدی بازیابی نشود، سیستم از پاسخ‌گویی خودداری می‌کند و به‌جای فراخوانی مدل تولید پاسخ، فیلدهای `abstained`، دلیل خودداری و اطلاعات امتیاز را برمی‌گرداند. با `ANSWERABILITY_ENABLED=false` می‌توان این لایه را غیرفعال کرد. فیلدهای قبلی `answer` و `sources` در پاسخ `/ask` حفظ شده‌اند و اطلاعات `answerable`، `abstained`، `abstention_reason` و `answerability` نیز اضافه می‌شوند.
 
-مقدار پیش‌فرض آستانه (`0.0`) فقط نقطه شروع است و **احتمال کالیبره‌شده محسوب نمی‌شود**. امتیازهای Cross-Encoder به مدل و دامنه داده وابسته‌اند. آستانه را با معیارهای جدید Answerability روی Dev انتخاب کنید تا توازن مناسبی بین False Positive (پاسخ دادن به سؤال غیرقابل‌پاسخ) و False Negative (خودداری از پاسخ به سؤال پاسخ‌پذیر) ایجاد شود؛ سپس پیش از ارزیابی Test آن را ثابت نگه دارید. این روش یک heuristic سبک است و تضمین‌کننده صحت factual پاسخ نیست.
+آستانه پیش‌فرض (`0.67`) بر اساس ۶۰ پرسش مجموعه توسعه انتخاب شده است: ۴۱ True Positive، صفر False Positive، ۱۲ True Negative و ۷ False Negative (دقت کلی ۸۸.۳۳٪، Precision برابر ۱۰۰٪، Recall برابر ۸۵.۴۲٪ و F1 برابر ۹۲.۱۳٪). این مقدار یک نقطه عملیاتی تجربی روی Dev است و **احتمال کالیبره‌شده محسوب نمی‌شود**؛ امتیازهای Cross-Encoder به مدل و دامنه داده وابسته‌اند و فاصله امتیازها در اطراف آستانه کم است، بنابراین تعمیم آن تضمین‌شده نیست. با تغییر مدل یا Corpus، آستانه را روی یک مجموعه توسعه نماینده دوباره تنظیم کنید و سپس پیش از ارزیابی Test آن را ثابت نگه دارید. این روش یک heuristic سبک است و تضمین‌کننده صحت factual پاسخ نیست.
 
 ## تنظیمات
 
@@ -107,7 +107,7 @@ Reranker فقط ترتیب کاندیداهای بازیابی‌شده را ت�
 | `RERANKER_MODEL` | شناسه مدل Cross-Encoder |
 | `RERANK_CANDIDATE_K` | تعداد chunkهای ورودی به Reranker |
 | `ANSWERABILITY_ENABLED` | فعال‌سازی Abstention مبتنی بر امتیاز؛ پیش‌فرض `true` و فقط همراه Reranker |
-| `ANSWERABILITY_THRESHOLD` | حداقل امتیاز Cross-Encoder برای تولید پاسخ؛ پیش‌فرض `0.0` |
+| `ANSWERABILITY_THRESHOLD` | حداقل امتیاز Cross-Encoder برای تولید پاسخ؛ پیش‌فرض `0.67` (تنظیم‌شده با Dev) |
 | `EMBEDDING_MODEL` | مدل embedding |
 | `CHROMA_PATH` / `CHROMA_COLLECTION` | مسیر و نام پایگاه برداری |
 | `CHUNK_SIZE` / `CHUNK_OVERLAP` | اندازه chunk و هم‌پوشانی |
