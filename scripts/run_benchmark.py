@@ -145,6 +145,16 @@ def main() -> None:
         sparse_weight=benchmark_config.sparse_weight,
         rrf_k=benchmark_config.rrf_k,
     )
+    # Match the production pipeline: retrieve from the configured dense/sparse
+    # candidate pools, fuse, then pass only RERANK_CANDIDATE_K chunks to the
+    # Cross-Encoder. The non-reranked baseline retains its original full-pool
+    # benchmark behavior for continuity with previously recorded results.
+    rerank_hybrid = HybridRetriever(
+        dense, bm25, candidate_k=benchmark_config.hybrid_candidate_k,
+        dense_weight=benchmark_config.dense_weight,
+        sparse_weight=benchmark_config.sparse_weight,
+        rrf_k=benchmark_config.rrf_k,
+    )
     available_modes = {"dense": dense, "bm25": bm25, "hybrid": hybrid}
     selected_modes = (
         ["dense", "bm25", "hybrid", "hybrid-reranked"]
@@ -159,8 +169,9 @@ def main() -> None:
     reports = {}
     for mode in selected_modes:
         reports[mode] = evaluate_mode(
-            hybrid if mode == "hybrid-reranked" else available_modes[mode],
-            cases, args.k, candidate_k,
+            rerank_hybrid if mode == "hybrid-reranked" else available_modes[mode],
+            cases, args.k,
+            benchmark_config.rerank_candidate_k if mode == "hybrid-reranked" else candidate_k,
             reranker=reranker if mode == "hybrid-reranked" else None,
         )
 
@@ -182,6 +193,15 @@ def main() -> None:
         "k": args.k,
         "corpus_documents": len(corpus_files),
         "indexed_chunks": ingestion["chunks"],
+        "hybrid_candidate_k": benchmark_config.hybrid_candidate_k,
+        "rerank_candidate_k": benchmark_config.rerank_candidate_k,
+        "candidate_pool_chunks": {
+            mode: (
+                benchmark_config.rerank_candidate_k
+                if mode == "hybrid-reranked" else candidate_k
+            )
+            for mode in selected_modes
+        },
         "query_count": len(selected),
         "category_counts": dict(Counter(item["category"] for item in selected)),
         "metrics": {mode: report["metrics"] for mode, report in reports.items()},
