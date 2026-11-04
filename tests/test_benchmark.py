@@ -44,8 +44,8 @@ def test_document_level_retriever_returns_available_unique_sources():
 def test_reranking_happens_before_document_deduplication():
     chunks = FakeChunkRetriever([
         {"id": "a-0", "text": "weak evidence", "metadata": {"source": "/corpus/a.md"}},
-        {"id": "b-0", "text": "strong evidence", "metadata": {"source": "/corpus/b.md"}},
-        {"id": "a-1", "text": "strongest evidence", "metadata": {"source": "/corpus/a.md"}},
+        {"id": "a-1", "text": "strong evidence", "metadata": {"source": "/corpus/a.md"}},
+        {"id": "b-0", "text": "strongest evidence", "metadata": {"source": "/corpus/b.md"}},
     ])
     retriever = DocumentLevelRetriever(
         chunks, candidate_k=3, reranker=ReverseChunkReranker()
@@ -53,5 +53,7 @@ def test_reranking_happens_before_document_deduplication():
 
     results = retriever.retrieve("question", top_k=2)
 
-    assert [item["id"] for item in results] == ["a.md", "b.md"]
-    assert results[0]["rerank_score"] == 0.0
+    # The reranker moves B's chunk ahead of A's chunks before source deduplication.
+    assert [item["id"] for item in results] == ["b.md", "a.md"]
+    assert results[0]["rerank_score"] == 2.0
+    assert results[1]["rerank_score"] == 1.0
