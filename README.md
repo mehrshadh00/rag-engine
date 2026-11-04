@@ -109,7 +109,7 @@ Tests use lightweight fakes and do not require API credentials or model download
 
 The v2 benchmark contains 15 technical documents and 100 manually labeled, document-level queries. It is stratified into five categories: direct factual, semantic paraphrase, exact terminology, multi-hop, and unanswerable. Each category has 12 development queries and 8 held-out test queries (60 dev / 40 test overall).
 
-The runner compares dense-only, BM25-only, hybrid RRF, and hybrid RRF followed by Cross-Encoder reranking. The reranker scores candidate chunks before document-level deduplication, so the evaluation cutoff remains a number of unique source documents. By default only the development split is evaluated.
+The runner compares dense-only, BM25-only, hybrid RRF, and hybrid RRF followed by Cross-Encoder reranking. For the reranked mode, the first-stage dense and sparse retrievers each use `HYBRID_CANDIDATE_K`, RRF fuses their results, and only the top `RERANK_CANDIDATE_K` chunks are passed to the Cross-Encoder. This matches the runtime candidate-generation settings. The reranker scores chunks before document-level deduplication, so the evaluation cutoff remains a number of unique source documents. The report records both candidate settings. By default only the development split is evaluated.
 
 ```bash
 # Compare all four methods on dev (downloads the Cross-Encoder on first run)
