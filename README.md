@@ -102,7 +102,7 @@ Reranking is disabled by default. To enable it, set `RERANK_ENABLED=true`; the d
 
 When `RERANK_ENABLED=true` and `ANSWERABILITY_ENABLED=true`, the pipeline checks the highest Cross-Encoder score after reranking. If the score is below `ANSWERABILITY_THRESHOLD`, or no evidence is retrieved, the pipeline abstains and returns an explicit `abstained` flag, reason, and score metadata instead of calling the answer-generation model. Set `ANSWERABILITY_ENABLED=false` to disable this gate. The `/ask` response keeps the existing `answer` and `sources` fields and adds `answerable`, `abstained`, `abstention_reason`, and `answerability` metadata.
 
-The default threshold (`0.67`) was selected on the 60-query development split: it produced 41 true positives, 0 false positives, 12 true negatives, and 7 false negatives (88.33% accuracy, 100% precision, 85.42% recall, 92.13% F1). This is an empirical development-set operating point, **not a calibrated probability cutoff**; Cross-Encoder logits are model- and domain-dependent, and the small score gap around the threshold may not generalize. Recalibrate on a representative development set when the corpus or model changes, then freeze the threshold before evaluating the held-out test split. This gate is a lightweight heuristic, not a guarantee of factual correctness.
+The default threshold (`0.67`) was selected on the 60-query development split and then frozen before the held-out test evaluation. At this threshold, Dev produced 40 true positives, 0 false positives, 12 true negatives, and 8 false negatives (86.67% accuracy, 100% precision, 83.33% recall, 90.91% F1). On the 40-query Test split, it produced 26 true positives, 0 false positives, 8 true negatives, and 6 false negatives (85.00% accuracy, 100% precision, 81.25% recall, 89.66% F1). The zero false-positive counts are observations on these small splits, not a guarantee of zero false positives in production. This is an empirical operating point, **not a calibrated probability cutoff**: Cross-Encoder logits are model- and domain-dependent. Recalibrate on a representative development set when the corpus or model changes, then freeze the threshold before evaluating a fresh held-out test split. This gate is a lightweight heuristic, not a guarantee of factual correctness.
 
 ## Evaluation and tests
 
@@ -152,6 +152,17 @@ All results below use **K=3 unique source documents**. Precision@K, Recall@K, MR
 | Multi-hop complete evidence | 50.00% | 50.00% | 62.50% | **75.00%** |
 
 On this dataset, Hybrid + Reranker achieved the highest value for every reported retrieval metric on both splits. Compared with Hybrid on the held-out test split, reranking improved Precision@3 by 2.08 percentage points, Recall@3 by 4.69 points, MRR by 4.69 points, Hit Rate@3 by 3.12 points, and multi-hop complete evidence by 12.50 points.
+
+### Answerability / abstention results
+
+The answerability gate was evaluated separately from document retrieval, using the top Cross-Encoder score with a fixed threshold of **0.67**. The threshold was selected on Dev and kept unchanged for Test.
+
+| Split | Queries | TP | FP | TN | FN | Accuracy | Precision | Recall | F1 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Dev | 60 | 40 | 0 | 12 | 8 | 86.67% | 100.00% | 83.33% | 90.91% |
+| Test | 40 | 26 | 0 | 8 | 6 | 85.00% | 100.00% | 81.25% | 89.66% |
+
+At this operating point, no unanswerable query in either split was incorrectly accepted (0 observed false positives); the system abstained on 8 of 12 unanswerable Dev queries and all 8 unanswerable Test queries. It also abstained on 8 answerable Dev queries and 6 answerable Test queries. Because the evaluation sets are small, these results should not be interpreted as a production guarantee. The threshold is a score cutoff, not a probability.
 
 ### Interpretation and limitations
 
