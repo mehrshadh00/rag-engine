@@ -1,4 +1,5 @@
 """Environment-based application configuration."""
+import math
 import os
 from dataclasses import dataclass
 
@@ -51,6 +52,8 @@ class Settings:
             raise ValueError("RERANK_CANDIDATE_K must be positive")
         if not self.reranker_model.strip():
             raise ValueError("RERANKER_MODEL cannot be empty")
+        if not math.isfinite(self.answerability_threshold):
+            raise ValueError("ANSWERABILITY_THRESHOLD must be finite")
 
 
 settings = Settings()
