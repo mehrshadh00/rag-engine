@@ -9,8 +9,9 @@ A modular Retrieval-Augmented Generation (RAG) system for grounded question answ
 3. Encodes chunks with a local Sentence Transformers embedding model.
 4. Stores vectors in a persistent ChromaDB collection.
 5. Combines dense semantic search and sparse BM25 search with Reciprocal Rank Fusion (RRF).
-6. Builds source-attributed context and generates answers with an OpenAI-compatible chat model.
-7. Exposes ingestion and question-answering endpoints through FastAPI.
+6. Optionally reranks retrieved chunks with a Cross-Encoder before context assembly.
+7. Builds source-attributed context and generates answers with an OpenAI-compatible chat model.
+8. Exposes ingestion and question-answering endpoints through FastAPI.
 
 ## Architecture
 
@@ -23,7 +24,11 @@ Question -> Dense Search + BM25 Search
                     |
              Reciprocal Rank Fusion
                     |
-             Ranked Chunks -> Context -> Chat Model
+             Candidate Chunks
+                    |
+       Optional Cross-Encoder Reranking
+                    |
+       Ranked Chunks -> Context -> Chat Model
                                       |
                                Answer + Citations
 ```
@@ -37,30 +42,20 @@ git clone https://github.com/mehrshadh00/rag-engine.git
 cd rag-engine
 python -m venv .venv
 # macOS/Linux: source .venv/bin/activate
-# Windows CMD: .venv\Scripts\activate.bat
-# Windows PowerShell: .venv\Scripts\Activate.ps1
+# Windows CMD: .venv\\Scripts\\activate.bat
+# Windows PowerShell: .venv\\Scripts\\Activate.ps1
 pip install -r requirements.txt
 pip install -e .
 cp .env.example .env
 ```
 
-Set `OPENAI_API_KEY` in `.env` to enable answer generation. Ingestion and retrieval use a local embedding model and do not require an LLM API key.
+Set `OPENAI_API_KEY` in `.env` to enable answer generation. Ingestion and retrieval use local models and do not require an LLM API key.
 
 Add documents under `data/`, then ingest them:
 
 ```bash
 python -m rag_engine.cli ingest data
-```
-
-Ask a question:
-
-```bash
 python -m rag_engine.cli ask "What do the documents say about artificial intelligence?"
-```
-
-Run the API:
-
-```bash
 uvicorn rag_engine.api:app --reload
 ```
 
@@ -68,7 +63,7 @@ uvicorn rag_engine.api:app --reload
 - `POST /ask` with JSON: `{"question": "Your question", "top_k": 5}`
 - `GET /health`
 
-The first run downloads the configured embedding model from Hugging Face.
+The first run downloads the configured embedding model from Hugging Face. Enabling reranking also downloads the configured Cross-Encoder model on first use.
 
 ## Configuration
 
@@ -76,27 +71,29 @@ See `.env.example`.
 
 | Variable | Purpose |
 |---|---|
-| `EMBEDDING_MODEL` | Sentence Transformers model |
-| `CHROMA_PATH` | Persistent vector database directory |
-| `CHROMA_COLLECTION` | Chroma collection name |
+| `EMBEDDING_MODEL` | Sentence Transformers embedding model |
+| `CHROMA_PATH` / `CHROMA_COLLECTION` | Persistent vector store location and collection |
 | `CHUNK_SIZE` / `CHUNK_OVERLAP` | Chunking parameters |
 | `TOP_K` | Number of final passages retrieved |
-| `RETRIEVAL_MODE` | `hybrid` (default) or `dense` |
+| `RETRIEVAL_MODE` | `hybrid` (default), `dense`, or `bm25` |
 | `HYBRID_CANDIDATE_K` | Candidate pool size per retriever before fusion |
 | `RRF_K` | Reciprocal Rank Fusion smoothing constant |
 | `DENSE_WEIGHT` / `SPARSE_WEIGHT` | Relative contribution of each ranked list |
-| `OPENAI_API_KEY` | API key for answer generation |
-| `OPENAI_MODEL` | Chat completion model |
+| `RERANK_ENABLED` | Enable optional Cross-Encoder reranking (`false` by default) |
+| `RERANKER_MODEL` | Cross-Encoder model identifier |
+| `RERANK_CANDIDATE_K` | Candidate chunk pool reranked before selecting final top-k |
+| `OPENAI_API_KEY` / `OPENAI_MODEL` | Answer generation credentials and model |
 
-## Hybrid retrieval
+## Retrieval and reranking
 
 - **Dense retrieval:** semantic nearest-neighbor search over ChromaDB embeddings.
 - **Sparse retrieval:** dependency-free Okapi BM25 over persisted chunk text.
 - **Fusion:** Reciprocal Rank Fusion combines rank positions rather than incomparable raw similarity and BM25 scores.
+- **Reranking:** a Cross-Encoder jointly scores each query/chunk pair and reorders the retrieved candidate pool. It is applied after retrieval and before context assembly.
 
-For a result at rank `r`, RRF adds `weight / (rrf_k + r)`. Default weights are equal and `rrf_k=60`. The sparse index is rebuilt from the persistent Chroma collection when the pipeline starts and refreshed after ingestion, so it remains available across CLI/API process restarts.
+RRF adds `weight / (rrf_k + rank)` for each ranked list. Default weights are equal and `rrf_k=60`. The sparse index is rebuilt from the persistent Chroma collection at startup and refreshed after ingestion.
 
-Set `RETRIEVAL_MODE=dense` to use the original dense-only baseline. The default is `RETRIEVAL_MODE=hybrid`.
+Reranking is disabled by default. To enable it, set `RERANK_ENABLED=true`; the default model is `cross-encoder/ms-marco-MiniLM-L-6-v2`. Reranking can improve ordering but cannot recover relevant chunks absent from the candidate pool, and adds model latency.
 
 ## Evaluation and tests
 
@@ -106,66 +103,63 @@ Run unit tests:
 pytest
 ```
 
-The evaluation module reports Precision@K, Recall@K, Reciprocal Rank, and Hit Rate@K. Unit tests use lightweight fakes and do not require API credentials or downloading the embedding model.
+Tests use lightweight fakes and do not require API credentials or model downloads.
 
 ### Versioned retrieval benchmark
 
 The v2 benchmark contains 15 technical documents and 100 manually labeled, document-level queries. It is stratified into five categories: direct factual, semantic paraphrase, exact terminology, multi-hop, and unanswerable. Each category has 12 development queries and 8 held-out test queries (60 dev / 40 test overall).
 
-The runner compares dense-only, BM25-only, and hybrid RRF retrieval using the same corpus, labels, and final document cutoff. By default it evaluates only the development split; use the held-out test split only after retrieval choices are finalized.
+The runner compares dense-only, BM25-only, hybrid RRF, and hybrid RRF followed by Cross-Encoder reranking. The reranker scores candidate chunks before document-level deduplication, so the evaluation cutoff remains a number of unique source documents. By default only the development split is evaluated.
 
 ```bash
-# Compare Dense, BM25, and Hybrid on dev (default)
+# Compare all four methods on dev (downloads the Cross-Encoder on first run)
 python scripts/run_benchmark.py
+
+# Compare only the reranked hybrid method
+python scripts/run_benchmark.py --mode hybrid-reranked
+
+# Compare retrieval baselines without loading the Cross-Encoder
+python scripts/run_benchmark.py --mode hybrid
 
 # Change the final number of unique source documents
 python scripts/run_benchmark.py --k 1
 python scripts/run_benchmark.py --k 3
 
-# Select one retrieval method
-python scripts/run_benchmark.py --mode dense
-python scripts/run_benchmark.py --mode bm25
-python scripts/run_benchmark.py --mode hybrid
-
-# Evaluate the held-out test split explicitly
+# Evaluate the held-out test split only after decisions are finalized
 python scripts/run_benchmark.py --split test
-
-# Run all labeled queries, or supply another compatible dataset/corpus
-python scripts/run_benchmark.py --split all
-python scripts/run_benchmark.py --dataset benchmarks/datasets/rag_fundamentals_v2.json --corpus-dir benchmarks/corpus_v2
 ```
 
-The report includes Precision@K, Recall@K, MRR, and Hit Rate@K for answerable queries; multi-hop complete-evidence rate; unanswerable false-positive rate; and category-level breakdowns. Unanswerable queries are excluded from conventional relevance averages because they have no relevant source labels. The false-positive diagnostic measures whether any result was returned, not whether the system can abstain at answer-generation time.
+The report includes Precision@K, Recall@K, MRR, Hit Rate@K, multi-hop complete-evidence rate, unanswerable false-positive rate, and category-level breakdowns. The unanswerable diagnostic measures whether any result was returned, not whether generation can abstain.
 
-Each run clears its dataset-specific Chroma collection before ingestion to prevent stale vectors from contaminating results. The benchmark does not call an LLM API. It is a reproducible diagnostic dataset, not a general-purpose leaderboard; its conclusions are limited by the corpus and human relevance labels.
+Each run clears its dataset-specific Chroma collection before ingestion. The benchmark does not call an LLM API. It is a reproducible diagnostic dataset, not a general-purpose leaderboard; conclusions are limited by this corpus and its human relevance labels.
 
 ## Current scope and limitations
 
 - BM25 currently uses a lowercase alphanumeric tokenizer; stemming and language-specific analyzers are not included.
 - PDF extraction is text-based; scanned PDFs require OCR, which is not included yet.
-- Hybrid fusion combines chunk-level rankings; document-level evaluation deduplicates chunks by source.
-- Cross-encoder reranking is a planned extension.
+- Reranking only reorders retrieved candidates; candidate recall remains dependent on the first-stage retriever.
 - A local demonstration is not automatically a production-ready knowledge system.
 
 ## Project structure
 
 ```text
 src/rag_engine/
-  api.py          # FastAPI endpoints
-  bm25.py         # Dependency-free BM25 sparse retrieval
-  benchmark.py    # Document-level benchmark adapter
-  chunking.py     # Overlap-aware text chunking
-  config.py       # Environment-based settings
-  embeddings.py   # Sentence Transformers adapter
-  evaluation.py   # Retrieval metrics
-  generation.py   # Grounded answer generation
-  hybrid.py       # RRF-based dense/sparse fusion
-  ingestion.py    # PDF/TXT/Markdown loaders
-  pipeline.py     # End-to-end orchestration
-  retrieval.py    # Dense retrieval and context formatting
-  vector_store.py # Persistent ChromaDB storage
+  api.py
+  benchmark.py
+  bm25.py
+  chunking.py
+  config.py
+  embeddings.py
+  evaluation.py
+  generation.py
+  hybrid.py
+  ingestion.py
+  pipeline.py
+  reranking.py
+  retrieval.py
+  vector_store.py
 benchmarks/
-  corpus/
+  corpus_v2/
   datasets/
 scripts/
   run_benchmark.py
