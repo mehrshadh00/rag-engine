@@ -29,7 +29,7 @@ class Settings:
     )
     rerank_candidate_k: int = int(os.getenv("RERANK_CANDIDATE_K", "20"))
     answerability_enabled: bool = os.getenv("ANSWERABILITY_ENABLED", "true").lower() in {"1", "true", "yes", "on"}
-    answerability_threshold: float = float(os.getenv("ANSWERABILITY_THRESHOLD", "0.0"))
+    answerability_threshold: float = float(os.getenv("ANSWERABILITY_THRESHOLD", "0.67"))
     openai_api_key: str | None = os.getenv("OPENAI_API_KEY") or None
     openai_model: str = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
 
