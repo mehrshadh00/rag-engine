@@ -54,10 +54,29 @@ class PopulatedVectorStore:
             }
         ]
 
+    def query(self, embedding, top_k=5):
+        return [
+            {
+                "id": "chunk-1",
+                "text": "Python is a programming language.",
+                "metadata": {"source": "python.md", "page": 1},
+                "distance": 0.1,
+            }
+        ][:top_k]
+
 
 class StaticGenerator:
     def answer(self, question, context):
         return "Python is a programming language."
+
+
+class ReverseReranker:
+    def rerank(self, query, documents, top_k=None):
+        ranked = [
+            {**document, "rerank_score": float(index)}
+            for index, document in reversed(list(enumerate(documents)))
+        ]
+        return ranked[:top_k]
 
 
 def test_bm25_mode_uses_sparse_retriever():
@@ -85,3 +104,29 @@ def test_bm25_mode_uses_sparse_retriever():
     assert len(result["sources"]) == 1
     assert result["sources"][0]["source"] == "python.md"
 
+
+def test_pipeline_applies_injected_reranker_before_building_answer():
+    config = SimpleNamespace(
+        embedding_model="test-model",
+        chroma_path="unused",
+        chroma_collection="unused",
+        chunk_size=100,
+        chunk_overlap=10,
+        top_k=1,
+        retrieval_mode="dense",
+        rerank_enabled=True,
+        rerank_candidate_k=3,
+        openai_api_key=None,
+        openai_model="test-model",
+    )
+    pipeline = RAGPipeline(
+        config=config,
+        embedder=EmptyEmbedder(),
+        vector_store=PopulatedVectorStore(),
+        generator=StaticGenerator(),
+        reranker=ReverseReranker(),
+    )
+
+    result = pipeline.ask("Which programming language is Python?")
+
+    assert result["sources"][0]["rerank_score"] == 0.0
