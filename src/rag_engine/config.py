@@ -8,6 +8,7 @@ try:
 except ImportError:
     pass
 
+
 @dataclass(frozen=True)
 class Settings:
     embedding_model: str = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
@@ -21,6 +22,11 @@ class Settings:
     rrf_k: int = int(os.getenv("RRF_K", "60"))
     dense_weight: float = float(os.getenv("DENSE_WEIGHT", "1.0"))
     sparse_weight: float = float(os.getenv("SPARSE_WEIGHT", "1.0"))
+    rerank_enabled: bool = os.getenv("RERANK_ENABLED", "false").lower() in {"1", "true", "yes", "on"}
+    reranker_model: str = os.getenv(
+        "RERANKER_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2"
+    )
+    rerank_candidate_k: int = int(os.getenv("RERANK_CANDIDATE_K", "20"))
     openai_api_key: str | None = os.getenv("OPENAI_API_KEY") or None
     openai_model: str = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
 
@@ -39,6 +45,11 @@ class Settings:
             raise ValueError("RRF_K cannot be negative")
         if self.dense_weight <= 0 or self.sparse_weight <= 0:
             raise ValueError("DENSE_WEIGHT and SPARSE_WEIGHT must be positive")
+        if self.rerank_candidate_k <= 0:
+            raise ValueError("RERANK_CANDIDATE_K must be positive")
+        if not self.reranker_model.strip():
+            raise ValueError("RERANKER_MODEL cannot be empty")
+
 
 settings = Settings()
 settings.validate()
