@@ -31,8 +31,8 @@ class Settings:
             raise ValueError("CHUNK_OVERLAP must be >= 0 and smaller than CHUNK_SIZE")
         if self.top_k <= 0:
             raise ValueError("TOP_K must be positive")
-        if self.retrieval_mode not in {"dense", "hybrid"}:
-            raise ValueError("RETRIEVAL_MODE must be 'dense' or 'hybrid'")
+        if self.retrieval_mode not in {"dense", "bm25", "hybrid"}:
+            raise ValueError("RETRIEVAL_MODE must be 'dense', 'bm25' or 'hybrid'")
         if self.hybrid_candidate_k <= 0:
             raise ValueError("HYBRID_CANDIDATE_K must be positive")
         if self.rrf_k < 0:
