@@ -84,7 +84,7 @@ See `.env.example`.
 | `RERANKER_MODEL` | Cross-Encoder model identifier |
 | `RERANK_CANDIDATE_K` | Candidate chunk pool reranked before selecting final top-k |
 | `ANSWERABILITY_ENABLED` | Enable score-threshold abstention when reranking is enabled (default `true`) |
-| `ANSWERABILITY_THRESHOLD` | Minimum top Cross-Encoder score required to generate an answer (default `0.0`) |
+| `ANSWERABILITY_THRESHOLD` | Minimum top Cross-Encoder score required to generate an answer (default `0.67`; development-set calibrated) |
 | `OPENAI_API_KEY` / `OPENAI_MODEL` | Answer generation credentials and model |
 
 ## Retrieval and reranking
@@ -102,7 +102,7 @@ Reranking is disabled by default. To enable it, set `RERANK_ENABLED=true`; the d
 
 When `RERANK_ENABLED=true` and `ANSWERABILITY_ENABLED=true`, the pipeline checks the highest Cross-Encoder score after reranking. If the score is below `ANSWERABILITY_THRESHOLD`, or no evidence is retrieved, the pipeline abstains and returns an explicit `abstained` flag, reason, and score metadata instead of calling the answer-generation model. Set `ANSWERABILITY_ENABLED=false` to disable this gate. The `/ask` response keeps the existing `answer` and `sources` fields and adds `answerable`, `abstained`, `abstention_reason`, and `answerability` metadata.
 
-The default threshold (`0.0`) is a starting point, **not a calibrated probability cutoff**. Cross-Encoder logits are model- and domain-dependent. Use the new answerability metrics in the development benchmark to select a threshold that balances false positives (answering unanswerable questions) against false negatives (abstaining on answerable questions); then freeze it before evaluating the held-out test split. This gate is a lightweight heuristic, not a guarantee of factual correctness.
+The default threshold (`0.67`) was selected on the 60-query development split: it produced 41 true positives, 0 false positives, 12 true negatives, and 7 false negatives (88.33% accuracy, 100% precision, 85.42% recall, 92.13% F1). This is an empirical development-set operating point, **not a calibrated probability cutoff**; Cross-Encoder logits are model- and domain-dependent, and the small score gap around the threshold may not generalize. Recalibrate on a representative development set when the corpus or model changes, then freeze the threshold before evaluating the held-out test split. This gate is a lightweight heuristic, not a guarantee of factual correctness.
 
 ## Evaluation and tests
 
