@@ -42,3 +42,46 @@ def test_empty_retrieval_does_not_require_openai_key():
 def test_empty_question_is_rejected():
     with pytest.raises(ValueError, match="cannot be empty"):
         make_pipeline().ask("   ")
+
+
+class PopulatedVectorStore:
+    def get_all(self):
+        return [
+            {
+                "id": "chunk-1",
+                "text": "Python is a programming language.",
+                "metadata": {"source": "python.md", "page": 1},
+            }
+        ]
+
+
+class StaticGenerator:
+    def answer(self, question, context):
+        return "Python is a programming language."
+
+
+def test_bm25_mode_uses_sparse_retriever():
+    config = SimpleNamespace(
+        embedding_model="test-model",
+        chroma_path="unused",
+        chroma_collection="unused",
+        chunk_size=100,
+        chunk_overlap=10,
+        top_k=1,
+        retrieval_mode="bm25",
+        openai_api_key=None,
+        openai_model="test-model",
+    )
+    pipeline = RAGPipeline(
+        config=config,
+        embedder=EmptyEmbedder(),
+        vector_store=PopulatedVectorStore(),
+        generator=StaticGenerator(),
+    )
+
+    result = pipeline.ask("Which programming language is Python?")
+
+    assert result["answer"] == "Python is a programming language."
+    assert len(result["sources"]) == 1
+    assert result["sources"][0]["source"] == "python.md"
+
